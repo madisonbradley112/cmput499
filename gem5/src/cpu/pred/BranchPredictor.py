@@ -67,6 +67,22 @@ class BranchPredictor(SimObject):
     indirectBranchPred = Param.IndirectPredictor(SimpleIndirectPredictor(),
       "Indirect branch predictor, set to NULL to disable indirect predictions")
 
+class GShareBP(BranchPredictor):
+    type = 'GShareBP'
+    cxx_class = 'GShareBP'
+    cxx_header = "cpu/pred/gshare.hh"
+    #TODO
+    placeholder_param = Param.Unsigned(0,"Placeholder for future params")
+    #TODO
+
+class GlobalBP(BranchPredictor):
+    type = 'GlobalBP'
+    cxx_class = 'GlobalBP'
+    cxx_header = "cpu/pred/global.hh"
+
+    globalPredictorSize = Param.Unsigned(8192, "Size of global predictor")
+    globalCtrBits = Param.Unsigned(2, "Bits per counter")
+
 class LocalBP(BranchPredictor):
     type = 'LocalBP'
     cxx_class = 'LocalBP'

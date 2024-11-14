@@ -589,6 +589,9 @@ void
 FullO3CPU<Impl>::startup()
 {
     BaseCPU::startup();
+    for (int tid = 0; tid < numThreads; ++tid) {
+        switchRenameMode(tid, &freeList);
+    }
 
     fetch.startupStage();
     decode.startupStage();

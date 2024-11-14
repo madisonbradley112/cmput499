@@ -158,11 +158,10 @@ PhysRegFile::initFreeList(UnifiedFreeList *freeList)
         }
     }
 
-    /* depending on the mode we add the vector registers as whole units or
-     * as different elements. */
-    if (vecMode == Enums::Full)
-        freeList->addRegs(vecRegIds.begin(), vecRegIds.end());
-    else
+    /* We add the vector registers as whole units at all cases and
+     * in addition, elements for the Elem vecMode. */
+    freeList->addRegs(vecRegIds.begin(), vecRegIds.end());
+    if (vecMode == Enums::Elem)
         freeList->addRegs(vecElemIds.begin(), vecElemIds.end());
 
     // The next batch of the registers are the predicate physical
