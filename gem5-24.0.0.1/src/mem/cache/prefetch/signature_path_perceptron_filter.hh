@@ -48,7 +48,7 @@
 namespace gem5
 {
 
-struct SignaturePathPerceptronFilterPrefetcherParams;
+struct SignaturePathPrefetcherPerceptronFilterParams;
 
 namespace prefetch
 {
