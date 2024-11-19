@@ -202,6 +202,9 @@ class SignaturePathPerceptronFilter : public Queued
     /** Prefetch tables */
     AssociativeSet<RejectEntry> rejectTable;
 
+    std::vector<std::vector<SatCounter8>> weightTable;
+    
+
     /**
      * Generates a new signature from an existing one and a new stride
      * @param sig current signature
