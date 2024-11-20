@@ -62,7 +62,17 @@ SignaturePathPerceptronFilter::SignaturePathPerceptronFilter(const SignaturePath
                    p.pattern_table_assoc,
                    p.pattern_table_replacement_policy,
                    p.pattern_table_indexing_policy,
-                   PatternEntry(stridesPerPatternEntry, p.num_counter_bits))
+                   PatternEntry(stridesPerPatternEntry, p.num_counter_bits)),
+      prefetchTable((name() + ".PrefetchTable").c_str(),
+                   p.prefetch_table_entries,
+                   p.prefetch_table_assoc,
+                   p.prefetch_table_replacement_policy,
+                   p.prefetch_table_indexing_policy), 
+      rejectTable((name() + ".RejectTable").c_str(),
+                   p.reject_table_entries,
+                   p.reject_table_assoc,
+                   p.reject_table_replacement_policy,
+                   p.reject_table_indexing_policy)
 {
     fatal_if(prefetchConfidenceThreshold < 0,
         "The prefetch confidence threshold must be greater than 0\n");

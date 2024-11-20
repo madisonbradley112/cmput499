@@ -60,6 +60,8 @@ class SignaturePathPerceptronFilter : public Queued
     typedef uint16_t signature_t;
     /** Stride type */
     typedef int16_t stride_t;
+    /** Metadata type */
+    typedef uint8_t tag_t;
 
     /** Number of strides stored in each pattern entry */
     const unsigned stridesPerPatternEntry;
@@ -149,6 +151,59 @@ class SignaturePathPerceptronFilter : public Queued
 
     /** Pattern table */
     AssociativeSet<PatternEntry> patternTable;
+
+    /** Prefetch filter prefetch table, a set of prefetches that made it through the filter */
+    struct PrefetchEntry : public TaggedEntry
+    {
+        /** prefetch info */
+        bool valid : 1;
+        uint8_t tag : 6;
+        bool useful : 1;
+        bool prefetch_decision: 1;
+
+        /** metadata */
+        uint16_t pc: 12;
+        uint32_t address: 24;
+        uint16_t current_signature: 10;
+        uint16_t pc_i_hash: 12;
+        uint8_t delta: 7;
+        uint8_t confidence: 7;
+        uint8_t depth: 4;
+
+        PrefetchEntry() : valid(0), tag(0), useful(0), prefetch_decision(0), pc(0), address(0), 
+            current_signature(0), pc_i_hash(0), delta(0), confidence(0), depth(0)
+        {}
+    };
+    /** Prefetch tables */
+    AssociativeSet<PrefetchEntry> prefetchTable;
+
+
+    /** Prefetch filter reject table, a set of prefetches that didn't make it through the filter */
+    struct RejectEntry : public TaggedEntry
+    {
+        /** prefetch info */
+        bool valid : 1;
+        uint8_t tag : 6;
+        bool prefetch_decision: 1;
+
+        /** metadata */
+        uint16_t pc: 12;
+        uint32_t address: 24;
+        uint16_t current_signature: 10;
+        uint16_t pc_i_hash: 12;
+        uint8_t delta: 7;
+        uint8_t confidence: 7;
+        uint8_t depth: 4;
+
+        RejectEntry() : valid(0), tag(0), prefetch_decision(0), pc(0), address(0), 
+            current_signature(0), pc_i_hash(0), delta(0), confidence(0), depth(0)
+        {}
+    };
+    /** Prefetch tables */
+    AssociativeSet<RejectEntry> rejectTable;
+
+    std::vector<std::vector<SatCounter8>> weightTable;
+    
 
     /**
      * Generates a new signature from an existing one and a new stride
