@@ -202,6 +202,35 @@ class SignaturePathPerceptronFilter : public Queued
     /** Prefetch tables */
     AssociativeSet<RejectEntry> rejectTable;
 
+    // The table of weights.
+    // Each feature corresponds to one vector in the weight table. 
+
+    // At inference time (aka, a demand access is made to the L2 cache), 
+    // we take each feature and index the table by feature.
+    // For each feature vector, the feature value is used to index into the weight table.
+    // (eg. a value of 5 for the feature will index entry 5)
+    // The indexed weight values are then taken and summed. If the sum exceeds a threshold, 
+    // the prefetch occurs. If not, the prefetch does not occur.
+
+    // At update time (demand request and cache evict):
+    //      IF THERE IS A DEMAND REQUEST:
+    // the address that triggered the request is used to index into the prefetch and reject tables. 
+    // If the address is in the prefetch table, this indicates a useful prefetch;
+    // as the prefetch table holds those that made it through the filter.
+    // If the address is in the reject table, this indicates that we rejected something that 
+    // was requested from the L2 cache - that is, we have a false negative. 
+    // We then test the weights using a threshold (to avoid overtraining) and if it's below
+    // the threshold, then we adjust the weights positively. 
+    // A parallel access is made to the reject table - if it exists in the reject table, then 
+    // we know there was a wrong reject - and thus, weights are adjusted accordingly. 
+    //      IF THERE IS A CACHE EVICT:
+    // the address that triggered the request is used to index into the prefetch table. 
+    // If there's a valid entry in the table, it made a mispredict (aka, a false positive)
+    // as it allowed a prefetch request for a useless block to go through. The weights are then
+    // adjusted negatively. 
+
+    // We use the info in the tables to re-index the weights involved in the prefetch 
+    // filter decision. 
     std::vector<std::vector<SatCounter8>> weightTable;
     
 
