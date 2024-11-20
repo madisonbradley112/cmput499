@@ -382,6 +382,43 @@ class SignaturePathPrefetcherPerceptronFilter(QueuedPrefetcher):
         LRURP(), "Replacement policy of the pattern table"
     )
 
+    prefetch_table_entries = Param.MemorySize(
+        "1024", "Number of entries of the prefetch table"
+    )
+    prefetch_table_assoc = Param.Unsigned(
+        1, "Associativity of the prefetch table"
+    )
+    prefetch_table_indexing_policy = Param.BaseIndexingPolicy(
+        SetAssociative(
+            entry_size=1,
+            assoc=Parent.prefetch_table_assoc,
+            size=Parent.prefetch_table_entries,
+        ),
+        "Indexing policy of the prefetch table",
+    )
+    prefetch_table_replacement_policy = Param.BaseReplacementPolicy(
+        LRURP(), "Replacement policy of the prefetch table"
+    )
+
+    reject_table_entries = Param.MemorySize(
+        "1024", "Number of entries of the reject table"
+    )
+    reject_table_assoc = Param.Unsigned(
+        1, "Associativity of the reject table"
+    )
+    reject_table_indexing_policy = Param.BaseIndexingPolicy(
+        SetAssociative(
+            entry_size=1,
+            assoc=Parent.reject_table_assoc,
+            size=Parent.reject_table_entries,
+        ),
+        "Indexing policy of the reject table",
+    )
+    reject_table_replacement_policy = Param.BaseReplacementPolicy(
+        LRURP(), "Replacement policy of the reject table"
+    )
+
+
     prefetch_confidence_threshold = Param.Float(
         0.5, "Minimum confidence to issue prefetches"
     )

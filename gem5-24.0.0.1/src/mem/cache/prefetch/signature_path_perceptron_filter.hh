@@ -60,6 +60,8 @@ class SignaturePathPerceptronFilter : public Queued
     typedef uint16_t signature_t;
     /** Stride type */
     typedef int16_t stride_t;
+    /** Metadata type */
+    typedef uint8_t tag_t;
 
     /** Number of strides stored in each pattern entry */
     const unsigned stridesPerPatternEntry;
@@ -149,6 +151,88 @@ class SignaturePathPerceptronFilter : public Queued
 
     /** Pattern table */
     AssociativeSet<PatternEntry> patternTable;
+
+    /** Prefetch filter prefetch table, a set of prefetches that made it through the filter */
+    struct PrefetchEntry : public TaggedEntry
+    {
+        /** prefetch info */
+        bool valid : 1;
+        uint8_t tag : 6;
+        bool useful : 1;
+        bool prefetch_decision: 1;
+
+        /** metadata */
+        uint16_t pc: 12;
+        uint32_t address: 24;
+        uint16_t current_signature: 10;
+        uint16_t pc_i_hash: 12;
+        uint8_t delta: 7;
+        uint8_t confidence: 7;
+        uint8_t depth: 4;
+
+        PrefetchEntry() : valid(0), tag(0), useful(0), prefetch_decision(0), pc(0), address(0), 
+            current_signature(0), pc_i_hash(0), delta(0), confidence(0), depth(0)
+        {}
+    };
+    /** Prefetch tables */
+    AssociativeSet<PrefetchEntry> prefetchTable;
+
+
+    /** Prefetch filter reject table, a set of prefetches that didn't make it through the filter */
+    struct RejectEntry : public TaggedEntry
+    {
+        /** prefetch info */
+        bool valid : 1;
+        uint8_t tag : 6;
+        bool prefetch_decision: 1;
+
+        /** metadata */
+        uint16_t pc: 12;
+        uint32_t address: 24;
+        uint16_t current_signature: 10;
+        uint16_t pc_i_hash: 12;
+        uint8_t delta: 7;
+        uint8_t confidence: 7;
+        uint8_t depth: 4;
+
+        RejectEntry() : valid(0), tag(0), prefetch_decision(0), pc(0), address(0), 
+            current_signature(0), pc_i_hash(0), delta(0), confidence(0), depth(0)
+        {}
+    };
+    /** Prefetch tables */
+    AssociativeSet<RejectEntry> rejectTable;
+
+    // The table of weights.
+    // Each feature corresponds to one vector in the weight table. 
+
+    // At inference time (aka, a demand access is made to the L2 cache), 
+    // we take each feature and index the table by feature.
+    // For each feature vector, the feature value is used to index into the weight table.
+    // (eg. a value of 5 for the feature will index entry 5)
+    // The indexed weight values are then taken and summed. If the sum exceeds a threshold, 
+    // the prefetch occurs. If not, the prefetch does not occur.
+
+    // At update time (demand request and cache evict):
+    //      IF THERE IS A DEMAND REQUEST:
+    // the address that triggered the request is used to index into the prefetch and reject tables. 
+    // If the address is in the prefetch table, this indicates a useful prefetch;
+    // as the prefetch table holds those that made it through the filter.
+    // If the address is in the reject table, this indicates that we rejected something that 
+    // was requested from the L2 cache - that is, we have a false negative. 
+    // We then test the weights using a threshold (to avoid overtraining) and if it's below
+    // the threshold, then we adjust the weights positively. 
+    // A parallel access is made to the reject table - if it exists in the reject table, then 
+    // we know there was a wrong reject - and thus, weights are adjusted accordingly. 
+    //      IF THERE IS A CACHE EVICT:
+    // the address that triggered the request is used to index into the prefetch table. 
+    // If there's a valid entry in the table, it made a mispredict (aka, a false positive)
+    // as it allowed a prefetch request for a useless block to go through. The weights are then
+    // adjusted negatively. 
+
+    // We use the info in the tables to re-index the weights involved in the prefetch 
+    // filter decision. 
+    std::vector<std::vector<SatCounter8>> weightTable;
+    
 
     /**
      * Generates a new signature from an existing one and a new stride
