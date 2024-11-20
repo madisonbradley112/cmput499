@@ -139,11 +139,27 @@ SignaturePathPerceptronFilter::addPrefetch(Addr ppn, stride_t last_block,
     new_addr += pf_block * (Addr)blkSize;
 
     // TODO: INSERT PERCEPTRON PREFETCH FILTERING HERE
-    // call perceptron inference method using the fea
+    // call perceptron inference method using the features from the candidates
+
+    Addr phys_address, cache_line, page_addr, pc_xor_depth, last3_pc_hash, pc_xor_delta, double confidence, page_addr_xor_confidence,
+                                                 signature_xor_delta
+
 
     DPRINTF(HWPrefetch, "Queuing prefetch to %#x.\n", new_addr);
     addresses.push_back(AddrPriority(new_addr, 0));
 }
+
+void
+ SignaturePathPerceptronFilter::makeInference(std::vector<unsigned int> features){
+
+  // iterate over all features
+  for (int i = 0; i < features.size(); i++){
+    //index into the ith weight table to retrieve the jth elem
+
+    }
+
+
+                                             }
 
 void
 SignaturePathPerceptronFilter::handleSignatureTableMiss(stride_t current_block,
