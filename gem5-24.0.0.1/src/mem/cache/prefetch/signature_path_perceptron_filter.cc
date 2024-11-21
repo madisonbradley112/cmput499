@@ -34,6 +34,7 @@
 
 #include <cassert>
 #include <climits>
+#include <cmath>
 
 #include "debug/HWPrefetch.hh"
 #include "mem/cache/prefetch/associative_set_impl.hh"
@@ -112,7 +113,7 @@ SignaturePathPerceptronFilter::PatternEntry::getStrideEntry(stride_t stride)
 }
 
 void
-SignaturePathPerceptronFilter::addPrefetch(Addr pc, Addr request_addr, Addr ppn, stride_t last_block,
+SignaturePathPerceptronFilter::addPrefetch(Addr pc, Addr request_addr, uint8_t depth, Addr ppn, stride_t last_block,
     stride_t delta, double path_confidence, signature_t signature,
     bool is_secure, std::vector<AddrPriority> &addresses)
 {
@@ -148,69 +149,85 @@ SignaturePathPerceptronFilter::addPrefetch(Addr pc, Addr request_addr, Addr ppn,
     Addr new_addr = pf_ppn * pageBytes;
     new_addr += pf_block * (Addr)blkSize;
 
-    // TODO: INSERT PERCEPTRON PREFETCH FILTERING HERE
-    // call perceptron inference method using the features from the candidates
-
     // create the struct of features
     Features features;
 
-
-    //xor delta with signature
-
-    //auto signature_xor_delta = ; //(both int 16)
-    //auto truncated = signature_xor_delta & 0x7F; // truncate to 7 bits
+    // Truncate each feature to its specified number of bits
     features.signature_xor_delta = (signature ^ delta) & 0x3FF;
 
-    // physical address:
     features.phys_address = (request_addr & 0xFFF);
 
-    // cache line is the physical address shifted by size of blocks (each block is 64 bytes, 2^6 = 64 so shift by 6)
-    features.cache_line = 0;
+    // cache line is the physical address shifted by size of blocks (assuming each block is 64 bytes, 2^6 = 64 so shift by 6)
+    auto shift_cl = static_cast<uint16_t>(log2(blkSize));
+    features.cache_line = (request_addr >> shift_cl) & 0xFFF;
 
     // page addr is the physical address shifted by the size of a page (each page is 4096 bytes, 2^12 = 4096 so shift by 12)
-    features.page_addr = 0;
+    auto shift_p = static_cast<uint16_t>(log2(pageBytes));
+    auto p_addr = (request_addr >> shift_p);
+    features.page_addr = (p_addr) & 0xFFF;
 
-    features.page_addr_xor_confidence = 0;
+    // use the page addr from above and xor with confidence
+    features.page_addr_xor_confidence = (p_addr ^ static_cast<uint16_t>(path_confidence)) & 0xFFF;
 
     features.pc_xor_depth = (pc ^  depth) & 0x3FF;
-
-
-    features.last3_pc_hash = 0;
 
     features.pc_xor_delta = (pc ^ delta) & 0x7F;
 
     features.confidence = (static_cast<uint16_t>(path_confidence) & 0x7FF);
 
-
-
-
-
-    Addr phys_address, cache_line, page_addr, pc_xor_depth, last3_pc_hash, pc_xor_delta, double confidence, page_addr_xor_confidence,
-                                                 signature_xor_delta
-
+    // TODO:
+    // not too sure how to get the last 3 PCs yet
+    features.last3_pc_hash = 0;
 
     DPRINTF(HWPrefetch, "Queuing prefetch to %#x.\n", new_addr);
 
-    // add address as a prefetch candidate
-    addresses.push_back(AddrPriority(new_addr, 0));
+    auto prediction = makeInference(features);
+
+    if (prediction == 1){
+      // TODO:
+      // somehow need to specify to prefetch to LLC
+
+      // add address as a prefetch candidate
+        addresses.push_back(AddrPriority(new_addr, 0));
+
+      }
+
+    if (prediction == 2){
+        // TODO:
+        // somehow need to specify to prefetch to L2
+
+        // add address as a prefetch candidate
+        addresses.push_back(AddrPriority(new_addr, 0));
+
+      }
+
 }
 
-void
-    SignaturePathPerceptronFilter::makeInference(  Features features){
+int SignaturePathPerceptronFilter::makeInference( Features features){
 
+      auto w0 = weightTable[features.page_addr_xor_confidence];
+      auto w1 = weightTable[features.cache_line];
+      auto w2 = weightTable[features.page_addr];
+      auto w3 = weightTable[features.phys_address];
+      auto w4 = weightTable[features.confidence];
+      auto w5 = weightTable[features.last3_pc_hash];
+      auto w6 = weightTable[features.signature_xor_delta];
+      auto w7 = weightTable[features.pc_xor_depth];
+      auto w8 = weightTable[features.pc_xor_delta];
 
+      // sum the weights (Type problem???)
+      int sum = w0 + w1 + w2 + w3 + w4 + w5 + w6 + w7 + w8;
 
+      if (sum >= t_high){
+        return 2;
+       }
+      else if (sum >= t_low){
+        return 1;
+      }
+      return 0;
 
-
-  // iterate over all features
-  for (int i = 0; i < features.size(); i++){
-    //index into the ith weight table to retrieve the jth elem
-
-
-    }
-
-
-                                             }
+      }
+                                             
 
 void
 SignaturePathPerceptronFilter::handleSignatureTableMiss(stride_t current_block,
@@ -309,7 +326,7 @@ SignaturePathPerceptronFilter::calculatePrefetch(const PrefetchInfo &pfi,
                                  std::vector<AddrPriority> &addresses,
                                  const CacheAccessor &cache)
 {
-    Addr request_addr = pfi.getAddr();
+    Addr request_addr = pfi.getPaddr();
     Addr ppn = request_addr / pageBytes;
     Addr pc = pfi.getPC();
     stride_t current_block = (request_addr % pageBytes) / blkSize;
@@ -344,6 +361,7 @@ SignaturePathPerceptronFilter::calculatePrefetch(const PrefetchInfo &pfi,
     signature_t current_signature = signature_entry.signature;
     double current_confidence = initial_confidence;
     stride_t current_stride = signature_entry.lastBlock;
+    uint8_t current_depth = 0;
 
     // Look for prefetch candidates while the current path confidence is
     // high enough
@@ -369,7 +387,7 @@ SignaturePathPerceptronFilter::calculatePrefetch(const PrefetchInfo &pfi,
                 if (prefetch_confidence >= prefetchConfidenceThreshold) {
                     assert(entry.stride != 0);
                     //prefetch candidate
-                    addPrefetch(pc, request_addr, ppn, current_stride, entry.stride,
+                    addPrefetch(pc, request_addr, current_depth, ppn, current_stride, entry.stride,
                                 current_confidence, current_signature,
                                 is_secure, addresses);
                 }
@@ -377,6 +395,9 @@ SignaturePathPerceptronFilter::calculatePrefetch(const PrefetchInfo &pfi,
         }
 
         if (lookahead != nullptr) {
+
+          // Increasing the depth counter here
+            currrent_depth += 1;
             current_confidence *= calculateLookaheadConfidence(
                     *current_pattern_entry, *lookahead);
             current_signature =
@@ -390,15 +411,18 @@ SignaturePathPerceptronFilter::calculatePrefetch(const PrefetchInfo &pfi,
     auxiliaryPrefetcher(ppn, current_block, is_secure, addresses);
 }
 
+
+// Should we remove this? I don't think PPF uses next line prefetcher as an alternative
+
 void
 SignaturePathPerceptronFilter::auxiliaryPrefetcher(Addr ppn, stride_t current_block,
         bool is_secure, std::vector<AddrPriority> &addresses)
 {
-    if (addresses.empty()) {
-        // Enable the next line prefetcher if no prefetch candidates are found
-        addPrefetch(ppn, current_block, 1, 0.0 /* unused*/, 0 /* unused */,
-                    is_secure, addresses);
-    }
+//    if (addresses.empty()) {
+//        // Enable the next line prefetcher if no prefetch candidates are found
+//        addPrefetch(ppn, current_block, 1, 0.0 /* unused*/, 0 /* unused */,
+//                    is_secure, addresses);
+//    }
 }
 
 } // namespace prefetch

@@ -152,7 +152,7 @@ class SignaturePathPerceptronFilter : public Queued
     /** Pattern table */
     AssociativeSet<PatternEntry> patternTable;
 
-    /** Features used */
+    /** Features used for the perceptron filter */
     struct Features {
 
         // The bits per feature for these features are determined by their Pearson Coefficient
@@ -248,7 +248,18 @@ class SignaturePathPerceptronFilter : public Queued
     // We use the info in the tables to re-index the weights involved in the prefetch 
     // filter decision. 
     std::vector<std::vector<SatCounter8>> weightTable;
-    
+
+    // weight thresholds, t_low is the threshold for prefetching into LLC, t_high is the threshold for prefetching into the L2 cache
+    int t_low = 25;
+    int t_high = 90;
+
+    /**
+     * Uses the features of a prefetch candidate to filter whether or not this candidate should be prefetched
+     * returns state 0 if no prefetch at all
+     * returns state 1 if prefetch to LLC
+     * returns state 2 if prefetch to L2
+     */
+    int makeInference( Features features);
 
     /**
      * Generates a new signature from an existing one and a new stride
@@ -277,7 +288,7 @@ class SignaturePathPerceptronFilter : public Queued
      * @param is_secure whether this page is inside the secure memory area
      * @param addresses addresses to prefetch will be added to this vector
      */
-    void addPrefetch(Addr pc, Addr request_address, Addr ppn, stride_t last_block, stride_t delta,
+    void addPrefetch(Addr pc, Addr request_address, uint8_t depth, Addr ppn, stride_t last_block, stride_t delta,
                           double path_confidence, signature_t signature,
                           bool is_secure,
                           std::vector<AddrPriority> &addresses);
