@@ -152,6 +152,22 @@ class SignaturePathPerceptronFilter : public Queued
     /** Pattern table */
     AssociativeSet<PatternEntry> patternTable;
 
+    /** Features used */
+    struct Features {
+
+        // The bits per feature for these features are determined by their Pearson Coefficient
+        uint32_t page_addr_xor_confidence: 12;
+        uint32_t cache_line: 12;
+        uint32_t page_addr: 12;
+        uint32_t phys_address: 12;
+        uint32_t confidence: 11;
+        uint32_t last3_pc_hash: 11;
+        uint32_t signature_xor_delta: 10;
+        uint32_t pc_xor_depth: 10;
+        uint32_t pc_xor_delta: 7;
+
+      };
+
     /** Prefetch filter prefetch table, a set of prefetches that made it through the filter */
     struct PrefetchEntry : public TaggedEntry
     {
@@ -261,7 +277,7 @@ class SignaturePathPerceptronFilter : public Queued
      * @param is_secure whether this page is inside the secure memory area
      * @param addresses addresses to prefetch will be added to this vector
      */
-    void addPrefetch(Addr ppn, stride_t last_block, stride_t delta,
+    void addPrefetch(Addr pc, Addr request_address, Addr ppn, stride_t last_block, stride_t delta,
                           double path_confidence, signature_t signature,
                           bool is_secure,
                           std::vector<AddrPriority> &addresses);
