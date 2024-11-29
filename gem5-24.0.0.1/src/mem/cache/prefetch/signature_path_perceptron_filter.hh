@@ -44,6 +44,7 @@
 #include "mem/cache/prefetch/associative_set.hh"
 #include "mem/cache/prefetch/queued.hh"
 #include "mem/packet.hh"
+#include "cpu/o3/pc_fifo3.hh"
 
 namespace gem5
 {
@@ -73,6 +74,8 @@ class SignaturePathPerceptronFilter : public Queued
     const double prefetchConfidenceThreshold;
     /** Minimum confidence to keep navigating lookahead entries */
     const double lookaheadConfidenceThreshold;
+
+    o3::pcFifo pc_fifo;
 
     /** Signature entry data type */
     struct SignatureEntry : public TaggedEntry
@@ -259,7 +262,7 @@ class SignaturePathPerceptronFilter : public Queued
      * returns state 1 if prefetch to LLC
      * returns state 2 if prefetch to L2
      */
-    int makeInference( Features features);
+    bool makeInference( Features features);
 
     /**
      * Generates a new signature from an existing one and a new stride

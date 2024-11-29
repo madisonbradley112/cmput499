@@ -175,58 +175,56 @@ SignaturePathPerceptronFilter::addPrefetch(Addr pc, Addr request_addr, uint8_t d
 
     features.confidence = (static_cast<uint16_t>(path_confidence) & 0x7FF);
 
-    // TODO:
-    // not too sure how to get the last 3 PCs yet
-    features.last3_pc_hash = 0;
+    auto num_prev_pcs = pc_fifo.get_size();
+
+    if (num_prev_pcs > 0){
+        features.last3_pc_hash = pc_fifo.get(0);
+      }
+
+    for (int i = 1; i < (num_prev_pcs -1) ; i++){
+
+          features.last3_pc_hash = features.last3_pc_hash ^ (features.last3_pc_hash = pc_fifo.get(1) >> i);
+
+      }
 
     DPRINTF(HWPrefetch, "Queuing prefetch to %#x.\n", new_addr);
 
     auto prediction = makeInference(features);
 
     if (prediction == 1){
-      // TODO:
-      // somehow need to specify to prefetch to LLC
 
       // add address as a prefetch candidate
         addresses.push_back(AddrPriority(new_addr, 0));
 
       }
 
-    if (prediction == 2){
-        // TODO:
-        // somehow need to specify to prefetch to L2
-
-        // add address as a prefetch candidate
-        addresses.push_back(AddrPriority(new_addr, 0));
-
-      }
 
 }
 
-int SignaturePathPerceptronFilter::makeInference( Features features){
+bool SignaturePathPerceptronFilter::makeInference( Features features){
 
-      auto w0 = weightTable[features.page_addr_xor_confidence];
-      auto w1 = weightTable[features.cache_line];
-      auto w2 = weightTable[features.page_addr];
-      auto w3 = weightTable[features.phys_address];
-      auto w4 = weightTable[features.confidence];
-      auto w5 = weightTable[features.last3_pc_hash];
-      auto w6 = weightTable[features.signature_xor_delta];
-      auto w7 = weightTable[features.pc_xor_depth];
-      auto w8 = weightTable[features.pc_xor_delta];
+      auto w0 = weightTable[0][features.page_addr_xor_confidence];
+      auto w1 = weightTable[1][features.cache_line];
+      auto w2 = weightTable[2][features.page_addr];
+      auto w3 = weightTable[3][features.phys_address];
+      auto w4 = weightTable[4][features.confidence];
+      auto w5 = weightTable[5][features.last3_pc_hash];
+      auto w6 = weightTable[6][features.signature_xor_delta];
+      auto w7 = weightTable[7][features.pc_xor_depth];
+      auto w8 = weightTable[8][features.pc_xor_delta];
+
 
       // sum the weights (Type problem???)
       int sum = w0 + w1 + w2 + w3 + w4 + w5 + w6 + w7 + w8;
 
       if (sum >= t_high){
-        return 2;
+        // TODO:
+        // since there  does not seem to be a way to choose what level of cache to prefetch to , how to modify the threshold?
+        return true;
        }
-      else if (sum >= t_low){
-        return 1;
-      }
-      return 0;
+       return false;
+       }
 
-      }
                                              
 
 void
