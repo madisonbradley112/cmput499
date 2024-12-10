@@ -46,6 +46,7 @@
 #include "mem/packet.hh"
 #include "cpu/o3/pc_fifo3.hh"
 
+
 namespace gem5
 {
 
@@ -214,12 +215,18 @@ class SignaturePathPerceptronFilter : public Queued
         uint8_t confidence: 7;
         uint8_t depth: 4;
 
+        replacement_policy::ReplacementData* replacement_data;
+
         RejectEntry() : valid(0), tag(0), prefetch_decision(0), pc(0), address(0), 
             current_signature(0), pc_i_hash(0), delta(0), confidence(0), depth(0)
         {}
     };
+
+
     /** Prefetch tables */
+
     AssociativeSet<RejectEntry> rejectTable;
+
 
     // The table of weights.
     // Each feature corresponds to one vector in the weight table. 
@@ -263,6 +270,14 @@ class SignaturePathPerceptronFilter : public Queued
      * returns state 2 if prefetch to L2
      */
     bool makeInference( Features features);
+    using EvictionInfo = CacheDataUpdateProbeArg;
+    //void notify(const CacheAccessProbeArg &acc, const PrefetchInfo &pfi) override;
+    //void notifyEvict(const EvictionInfo &info) override;
+
+    /**
+	* Train the weights for provided prefetch features based on the actual outcome of the usefulness of the weights
+	*/
+    void train(int outcome, PrefetchEntry * entry);
 
     /**
      * Generates a new signature from an existing one and a new stride

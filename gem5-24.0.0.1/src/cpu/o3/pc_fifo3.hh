@@ -13,6 +13,7 @@ struct BaseO3CPUParams;
 
 namespace o3
 {
+    typedef uint64_t Addr;
 
 class pcFifo {
 

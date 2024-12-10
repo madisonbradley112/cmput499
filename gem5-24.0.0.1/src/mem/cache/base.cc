@@ -1245,6 +1245,12 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
     // sanity check
     assert(pkt->isRequest());
 
+    //if (prefetcher){
+      // on eevery L2 cache access, must check the prefetcher tables
+
+       //   prefetcher-
+      //}
+
     gem5_assert(!(isReadOnly && pkt->isWrite()),
                 "Should never see a write in a read-only cache %s\n",
                 name());

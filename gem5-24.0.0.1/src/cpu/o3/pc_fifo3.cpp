@@ -2,18 +2,19 @@
 // Created by vboxuser on 11/29/24.
 //
 
-#include "pc_fifo3.h"
+#include "pc_fifo3.hh"
+#include <iostream>
 
 namespace gem5 {
 
 namespace o3 {
 
 std::deque<Addr> pcFifo::pc_fifo;
-const size_t pcFifo::max_size = 4;
 std::mutex pcFifo::pc_fifo_m;
 
 void pcFifo::push(Addr pc) {
-    std::lock_guard<std::mutex> lock(pc_fifo);
+    std::lock_guard<std::mutex> lock(pc_fifo_m);
+      std::cout << "pcFIFO push\n";
     if (pc_fifo.size() >= max_size) {
        pc_fifo.pop_front();
     }
@@ -22,7 +23,8 @@ void pcFifo::push(Addr pc) {
 }
 
 Addr pcFifo::get(size_t index){
-    std::lock_guard<std::mutex> lock(pc_fifo);
+    std::lock_guard<std::mutex> lock(pc_fifo_m);
+      std::cout << "pcFIFO get \n";
 
     if (index >= pc_fifo.size()){
           return -1;
@@ -31,8 +33,10 @@ Addr pcFifo::get(size_t index){
     return pc_fifo[index];
 }
 
-size_t size pcFifo::get_size(){
+size_t pcFifo::get_size(){
+  std::cout << "pcFIFO get size\n";
   return pc_fifo.size();
 
+}
 }
 }
