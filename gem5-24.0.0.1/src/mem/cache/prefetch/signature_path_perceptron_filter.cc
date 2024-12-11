@@ -248,44 +248,106 @@ SignaturePathPerceptronFilter::addPrefetch(Addr pc, Addr request_addr, uint8_t d
         addresses.push_back(AddrPriority(new_addr, 0));
 
         // record the data from the prefetch candidate into the prefetch and reject tables
-        PrefetchEntry prefetch_entry;
-        prefetch_entry.tag = entry_tag;
-        prefetch_entry.valid = 1;
-        prefetch_entry.useful = 0;
+        PrefetchEntry *prefetch_entry;
 
-        prefetch_entry.pc = pc & 0xFFF;
-        prefetch_entry.address = request_addr & 0xFFFFFF;
-        prefetch_entry.current_signature = signature & 0x3FF;
-        prefetch_entry.pc_i_hash = features.last3_pc_hash ^ 0x7FF;
-        prefetch_entry.delta = delta ^ 0xFFF;
-        prefetch_entry.confidence = features.confidence;
-        prefetch_entry.depth = depth & 0xF;
+        prefetch_entry = prefetchTable.findVictim(entry_index);
 
-        prefetchTable.insertEntry(entry_index, 1, &prefetch_entry);
+        prefetch_entry->tag = entry_tag;
+        prefetch_entry->valid = 1;
+        prefetch_entry->useful = 0;
+
+        prefetch_entry->pc = pc & 0xFFF;
+        prefetch_entry->address = request_addr & 0xFFFFFF;
+        prefetch_entry->current_signature = signature & 0x3FF;
+        prefetch_entry->pc_i_hash = features.last3_pc_hash ^ 0x7FF;
+        prefetch_entry->delta = delta ^ 0xFFF;
+        prefetch_entry->confidence = features.confidence;
+        prefetch_entry->depth = depth & 0xF;
+
+        prefetchTable.insertEntry(entry_index, 1, prefetch_entry);
 
       }
       else{
 
         std::cout << "Filter predicts NO\n";
-          RejectEntry reject_entry;
+          RejectEntry *reject_entry;
+
+          reject_entry = rejectTable.findVictim(entry_index);
 
           // Associate a replacement data entry to the sector
-          reject_entry.tag = entry_tag;
-          reject_entry.valid = 1;
+          reject_entry->tag = entry_tag;
+          reject_entry->valid = 1;
 
-          reject_entry.pc = pc & 0xFFF;
-          reject_entry.address = request_addr & 0xFFFFFF;
-          reject_entry.current_signature = signature & 0x3FF;
-          reject_entry.pc_i_hash = features.last3_pc_hash ^ 0x7FF;
-          reject_entry.delta = delta ^ 0xFFF;
-          reject_entry.confidence = features.confidence;
-          reject_entry.depth = depth & 0xF;
-
+          reject_entry->pc = pc & 0xFFF;
+          reject_entry->address = request_addr & 0xFFFFFF;
+          reject_entry->current_signature = signature & 0x3FF;
+          reject_entry->pc_i_hash = features.last3_pc_hash ^ 0x7FF;
+          reject_entry->delta = delta ^ 0xFFF;
+          reject_entry->confidence = features.confidence;
+          reject_entry->depth = depth & 0xF;
 
           std::cout << "Inserting into reject table\n";
-          rejectTable.insertEntry(entry_index, 1, &reject_entry);
+          rejectTable.insertEntry(entry_index, 1, reject_entry);
         }
 }
+
+//void
+//Base::probeNotify(const CacheAccessProbeArg &acc, bool miss)
+//{
+//
+//  std::cout << "in probe notify" << std::endl;
+//    const PacketPtr pkt = acc.pkt;
+//    const CacheAccessor &cache = acc.cache;
+//
+//    // Don't notify prefetcher on SWPrefetch, cache maintenance
+//    // operations or for writes that we are coaslescing.
+//    if (pkt->cmd.isSWPrefetch()) return;
+//    if (pkt->req->isCacheMaintenance()) return;
+//    if (pkt->isCleanEviction()) return;
+//    if (pkt->isWrite() && cache.coalesce()) return;
+//    if (!pkt->req->hasPaddr()) {
+//        panic("Request must have a physical address");
+//    }
+//
+//
+//
+//    bool has_been_prefetched =
+//        acc.cache.hasBeenPrefetched(pkt->getAddr(), pkt->isSecure(),
+//                                    requestorId);
+//    if (has_been_prefetched) {
+//        usefulPrefetches += 1;
+//        prefetchStats.pfUseful++;
+//        if (miss)
+//            // This case happens when a demand hits on a prefetched line
+//                // that's not in the requested coherency state.
+//                    prefetchStats.pfUsefulButMiss++;
+//    }
+//
+//    // Verify this access type is observed by prefetcher
+//    if (observeAccess(pkt, miss, has_been_prefetched)) {
+//        if (useVirtualAddresses && pkt->req->hasVaddr()) {
+//            PrefetchInfo pfi(pkt, pkt->req->getVaddr(), miss);
+//            notify(acc, pfi);
+//        } else if (!useVirtualAddresses) {
+//            PrefetchInfo pfi(pkt, pkt->req->getPaddr(), miss);
+//
+//            if (!pkt->isEviction()) {
+//                handleDemand(pfi);
+//            }
+//
+//            notify(acc, pfi);
+//        }
+//    }
+//}
+
+
+//void
+//SignaturePathPerceptronFilter::notify(const CacheAccessProbeArg &arg, const PrefetchInfo &pfi)
+//{
+//
+//    Base::PrefetchListener::notify(arg, pfi);
+//}
+
 
 // check tables and do training on a cache eviction
 
@@ -304,51 +366,144 @@ SignaturePathPerceptronFilter::addPrefetch(Addr pc, Addr request_addr, uint8_t d
 //
 //    }
 //
-//
 //  // entry must be valid and tag must match to train ppf
 //  if(entry->valid && entry_tag == entry->tag){
 //    // must train on misprediction
-//    train(-1, entry);
+//    trainPrefetch(-1, entry);
 //
 //    }
+//
+//    Base::notifyEvict(info);
 //  }
 
-//void SignaturePathPerceptronFilter::notify(const CacheAccessProbeArg &acc, const Base::PrefetchInfo &info){
-//
-//    // index both tables
-//    auto demand_addr = info.getAddr() & 0x3FF;
-//    auto entry_tag = info.getAddr()  & 0xFC00;
-//
-//    auto entry = prefetchTable.findEntry(demand_addr, 1);
-//
-//    std::cout << "Notify of cache access \n";
-//    std::cout << "entry tag: "  << entry_tag << "\n";
-//    std::cout << "entry: " << entry << "\n";
-//
-//    if(!entry){
-//      return;
-//
-//      }
-//
-//    std::cout << "entry tag?: " << entry->tag << "\n";
-//
-//    if(entry->valid && entry_tag == entry->tag){
-//        // if address exists in the prefetch filter on a demand L2 accesss, then the prediction was correct
-//        train(1, entry);
-//
-//    }
-//
-//    auto r_entry = rejectTable.findEntry(demand_addr, 1);
-//
-//    if(r_entry->valid && entry_tag == r_entry->tag){
-//        // if address exists in the reject filter on a demand L2 accesss, then the prediction should have been correct
-//        train(1, entry);
-//
-//    }
-//
-//  }
+void SignaturePathPerceptronFilter::handleDemand(const Base::PrefetchInfo &info){
 
-void SignaturePathPerceptronFilter::train(int outcome, PrefetchEntry * entry){
+    // index both tables
+    auto demand_addr = info.getAddr() & 0x3FF;
+    auto entry_tag = info.getAddr()  & 0xFC00;
+
+    auto entry = prefetchTable.findEntry(demand_addr, 1);
+
+    std::cout << "Notify of cache access \n";
+    std::cout << "entry tag: "  << entry_tag << "\n";
+    std::cout << "entry: " << entry << "\n";
+
+    if(!entry){
+      return;
+
+      }
+
+    std::cout << "entry tag?: " << entry->tag << "\n";
+
+    if(entry->valid && entry_tag == entry->tag){
+        // if address exists in the prefetch filter on a demand L2 accesss, then the prediction was correct
+        trainPrefetch(1, entry);
+
+    }
+
+    auto r_entry = rejectTable.findEntry(demand_addr, 1);
+
+    if(r_entry->valid && entry_tag == r_entry->tag){
+        // if address exists in the reject filter on a demand L2 accesss, then the prediction should have been correct
+        trainReject(1, r_entry);
+
+    }
+
+  }
+
+ void SignaturePathPerceptronFilter::trainReject(int outcome, RejectEntry * entry){
+
+// reconstruct the index values
+
+    // page addr is the physical address shifted by the size of a page (each page is 4096 bytes, 2^12 = 4096 so shift by 12)
+    auto shift_p = static_cast<uint16_t>(log2(pageBytes));
+
+    auto p_addr = (entry->address >> shift_p);
+
+    auto cache_line = (p_addr & ((pageBytes/blkSize) -1 ));
+
+    // INDEX INFO
+     auto f_index0 = (entry->confidence ^ p_addr) & 0xFFF;
+
+     auto f_index1 = cache_line & 0xFFF;
+
+     auto f_index2 = p_addr;
+
+     auto f_index3 = entry->address;
+
+     auto f_index4 = entry->confidence;
+
+     auto f_index5 = entry->pc_i_hash;
+
+     auto f_index6 = entry->current_signature ^ entry->delta;
+
+     auto f_index7 = entry->pc ^ entry->depth;
+
+     auto f_index8 = entry->pc ^ entry->delta;
+
+    auto w0 = weightTable[0][f_index0];
+    auto w1 = weightTable[1][f_index1];
+    auto w2 = weightTable[2][f_index2];
+    auto w3 = weightTable[3][f_index3];
+    auto w4 = weightTable[4][f_index4];
+    auto w5 = weightTable[5][f_index5];
+    auto w6 = weightTable[6][f_index6];
+    auto w7 = weightTable[7][f_index0];
+    auto w8 = weightTable[8][f_index0];
+
+    auto sum = static_cast<int>(w0) + static_cast<int>(w1) + static_cast<int>(w2) + static_cast<int>(w3) + static_cast<int>(w4) + static_cast<int>(w5) + static_cast<int>(w6) + static_cast<int>(w7) + static_cast<int>(w8);
+
+    // set the entry's valid bit to 0 after it has been determined to be useful or useless
+    entry->valid = 0;
+
+    // don't over train
+    if (abs(sum) >= THRESHOLD){
+      return;
+      }
+
+    // prefetch was actually useful
+    if (outcome > 0){
+        w0+=1;
+        w1+=1;
+        w2+=1;
+        w3+=1;
+        w4+=1;
+        w5+=1;
+        w6+=1;
+        w7+=1;
+        w8+=1;
+
+      }
+
+    // prefetch was not useful
+    if (outcome < 0){
+        w0-=1;
+        w1-=1;
+        w2-=1;
+        w3-=1;
+        w4-=1;
+        w5-=1;
+        w6-=1;
+        w7-=1;
+        w8-=1;
+
+    }
+
+    // update the weights in the table
+    weightTable[0][f_index0] = w0;
+    weightTable[1][f_index1] = w1;
+    weightTable[2][f_index2] = w2;
+    weightTable[3][f_index3] = w3;
+    weightTable[4][f_index4] = w4;
+    weightTable[5][f_index5] = w5;
+    weightTable[6][f_index6] = w6;
+    weightTable[7][f_index7] = w7;
+    weightTable[8][f_index8] = w8;
+
+
+   }
+
+void SignaturePathPerceptronFilter::trainPrefetch(int outcome, PrefetchEntry * entry){
 
      // reconstruct the index values
 
@@ -388,7 +543,7 @@ void SignaturePathPerceptronFilter::train(int outcome, PrefetchEntry * entry){
     auto w7 = weightTable[7][f_index0];
     auto w8 = weightTable[8][f_index0];
 
-    auto sum = w0 + w1 + w2 + w3 + w4 + w5 + w6 + w7 + w8;
+    auto sum = static_cast<int>(w0) + static_cast<int>(w1) + static_cast<int>(w2) + static_cast<int>(w3) + static_cast<int>(w4) + static_cast<int>(w5) + static_cast<int>(w6) + static_cast<int>(w7) + static_cast<int>(w8);
 
     // set the entry's valid bit to 0 after it has been determined to be useful or useless
     entry->valid = 0;
@@ -445,7 +600,6 @@ bool SignaturePathPerceptronFilter::makeInference( Features features){
 
   std::cout << "Making an inference:\n";
       auto w0 = static_cast<int>(weightTable[0][features.page_addr_xor_confidence]);
-      std::cout << "segfault here?\n";
       auto w1 = static_cast<int>(weightTable[1][features.cache_line]);
       auto w2 = static_cast<int>(weightTable[2][features.page_addr]);
       auto w3 = static_cast<int>(weightTable[3][features.phys_address]);
@@ -457,7 +611,7 @@ bool SignaturePathPerceptronFilter::makeInference( Features features){
 
       int sum = w0 + w1 + w2 + w3 + w4 + w5 + w6 + w7 + w8;
 
-      std::cout << "inference::: " << sum << "\n";
+      std::cout << "inference: " << sum << "\n";
 
 
       if (sum >= t_high){

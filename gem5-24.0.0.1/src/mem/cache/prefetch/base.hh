@@ -103,6 +103,10 @@ class Base : public ClockedObject
 
   public:
 
+    void handleEvict();
+
+	void handleDemand();
+
     /**
      * Class containing the information needed by the prefetch to train and
      * generate new prefetch requests.
@@ -459,6 +463,8 @@ class Base : public ClockedObject
      */
     void addMMU(BaseMMU *mmu);
 };
+
+
 
 } // namespace prefetch
 } // namespace gem5
