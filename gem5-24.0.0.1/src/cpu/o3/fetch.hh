@@ -56,6 +56,7 @@
 #include "mem/port.hh"
 #include "sim/eventq.hh"
 #include "sim/probe/probe.hh"
+#include "cpu/o3/pc_fifo3.hh"
 
 namespace gem5
 {
@@ -199,6 +200,8 @@ class Fetch
     ProbePointArg<DynInstPtr> *ppFetch;
     /** To probe when a fetch request is successfully sent. */
     ProbePointArg<RequestPtr> *ppFetchRequestSent;
+
+    pcFifo pc_fifo;
 
   public:
     /** Fetch constructor. */

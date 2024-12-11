@@ -44,6 +44,8 @@
 #include "mem/cache/prefetch/associative_set.hh"
 #include "mem/cache/prefetch/queued.hh"
 #include "mem/packet.hh"
+#include "cpu/o3/pc_fifo3.hh"
+
 
 namespace gem5
 {
@@ -73,6 +75,8 @@ class SignaturePathPerceptronFilter : public Queued
     const double prefetchConfidenceThreshold;
     /** Minimum confidence to keep navigating lookahead entries */
     const double lookaheadConfidenceThreshold;
+
+    o3::pcFifo pc_fifo;
 
     /** Signature entry data type */
     struct SignatureEntry : public TaggedEntry
@@ -152,6 +156,22 @@ class SignaturePathPerceptronFilter : public Queued
     /** Pattern table */
     AssociativeSet<PatternEntry> patternTable;
 
+    /** Features used for the perceptron filter */
+    struct Features {
+
+        // The bits per feature for these features are determined by their Pearson Coefficient
+        uint32_t page_addr_xor_confidence: 12;
+        uint32_t cache_line: 12;
+        uint32_t page_addr: 12;
+        uint32_t phys_address: 12;
+        uint32_t confidence: 11;
+        uint32_t last3_pc_hash: 11;
+        uint32_t signature_xor_delta: 10;
+        uint32_t pc_xor_depth: 10;
+        uint32_t pc_xor_delta: 7;
+
+      };
+
     /** Prefetch filter prefetch table, a set of prefetches that made it through the filter */
     struct PrefetchEntry : public TaggedEntry
     {
@@ -199,8 +219,12 @@ class SignaturePathPerceptronFilter : public Queued
             current_signature(0), pc_i_hash(0), delta(0), confidence(0), depth(0)
         {}
     };
+
+
     /** Prefetch tables */
+
     AssociativeSet<RejectEntry> rejectTable;
+
 
     // The table of weights.
     // Each feature corresponds to one vector in the weight table. 
@@ -232,7 +256,34 @@ class SignaturePathPerceptronFilter : public Queued
     // We use the info in the tables to re-index the weights involved in the prefetch 
     // filter decision. 
     std::vector<std::vector<SatCounter8>> weightTable;
-    
+
+    // weight thresholds, t_low is the threshold for prefetching into LLC, t_high is the threshold for prefetching into the L2 cache
+    int t_low = 25;
+    int t_high = 90;
+
+    /**
+     * Uses the features of a prefetch candidate to filter whether or not this candidate should be prefetched
+     * returns state 0 if no prefetch at all
+     * returns state 1 if prefetch to LLC
+     * returns state 2 if prefetch to L2
+     */
+    bool makeInference( Features features);
+    using EvictionInfo = CacheDataUpdateProbeArg;
+
+    //void
+	//probeNotify(const CacheAccessProbeArg &acc, bool miss);
+
+    //void notify(const CacheAccessProbeArg &acc, const PrefetchInfo &pfi) override;
+    //void notifyEvict(const EvictionInfo &info) override;
+
+    void handleDemand(const Base::PrefetchInfo &info);
+
+    /**
+	* Train the weights for provided prefetch features based on the actual outcome of the usefulness of the weights
+	*/
+    void trainPrefetch(int outcome, PrefetchEntry * entry);
+
+    void trainReject(int outcome, RejectEntry * entry);
 
     /**
      * Generates a new signature from an existing one and a new stride
@@ -261,7 +312,7 @@ class SignaturePathPerceptronFilter : public Queued
      * @param is_secure whether this page is inside the secure memory area
      * @param addresses addresses to prefetch will be added to this vector
      */
-    void addPrefetch(Addr ppn, stride_t last_block, stride_t delta,
+    void addPrefetch(Addr pc, Addr request_address, uint8_t depth, Addr ppn, stride_t last_block, stride_t delta,
                           double path_confidence, signature_t signature,
                           bool is_secure,
                           std::vector<AddrPriority> &addresses);

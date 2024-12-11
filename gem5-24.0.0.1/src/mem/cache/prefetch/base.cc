@@ -85,6 +85,8 @@ Base::PrefetchInfo::PrefetchInfo(PrefetchInfo const &pfi, Addr addr)
 void
 Base::PrefetchListener::notify(const CacheAccessProbeArg &arg)
 {
+
+  std::cout << "IN Base::PrefetchListener::notify()" << std::endl;
     if (isFill) {
         parent.notifyFill(arg);
     } else {
@@ -301,6 +303,14 @@ Base::addMMU(BaseMMU *m)
     fatal_if(mmu != nullptr, "Only one MMU can be registered");
     mmu = m;
 }
+
+void Base::handleEvict(){
+  std::cout << "handleEvict" << std::endl;
+  }
+
+void Base::handleDemand(){
+    std::cout << "handleDemand" << std::endl;
+  }
 
 } // namespace prefetch
 } // namespace gem5

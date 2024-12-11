@@ -951,6 +951,15 @@ BaseCache::handleEvictions(std::vector<CacheBlk*> &evict_blks,
 {
     bool replacement = false;
     for (const auto& blk : evict_blks) {
+
+//        if (prefetcher){
+//            // on eevery L2 cache access, must check the prefetcher tables
+//
+//            if(auto perceptron_prefetcher = dynamic_cast<SignaturePathPerceptronFilter*>(prefetcher)){
+//                return perceptron_prefetcher->handleDemand(pkt, blk);
+//            }
+//        }
+
         if (blk->isValid()) {
             replacement = true;
 
@@ -1242,8 +1251,25 @@ bool
 BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
                   PacketList &writebacks)
 {
+  std::cout << "IN BASE CACHE ACCESS METHOD" << std::endl;
     // sanity check
     assert(pkt->isRequest());
+
+    if (pkt->isRead()){
+          if (prefetcher){
+      // on eevery L2 cache access, must check the prefetcher tables
+
+
+      prefetcher->handleDemand();
+
+//          if(auto perceptron_prefetcher = dynamic_cast<SignaturePathPerceptronPrefetcher*>(prefetcher)){
+//            return perceptron_prefetcher->handleDemand(pkt, blk);
+//          }
+      }
+
+      }
+
+
 
     gem5_assert(!(isReadOnly && pkt->isWrite()),
                 "Should never see a write in a read-only cache %s\n",
@@ -1272,6 +1298,17 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
     }
 
     if (pkt->isEviction()) {
+
+          if (prefetcher){
+      // on eevery L2 cache access, must check the prefetcher tables
+
+
+      prefetcher->handleEvict();
+
+//          if(auto perceptron_prefetcher = dynamic_cast<SignaturePathPerceptronPrefetcher*>(prefetcher)){
+//            return perceptron_prefetcher->handleDemand(pkt, blk);
+//          }
+      }
         // We check for presence of block in above caches before issuing
         // Writeback or CleanEvict to write buffer. Therefore the only
         // possible cases can be of a CleanEvict packet coming from above

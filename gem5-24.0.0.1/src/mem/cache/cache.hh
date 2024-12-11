@@ -53,6 +53,7 @@
 #include "base/types.hh"
 #include "mem/cache/base.hh"
 #include "mem/packet.hh"
+#include "prefetch/signature_path_perceptron_filter.hh"
 
 namespace gem5
 {
@@ -160,6 +161,7 @@ class Cache : public BaseCache
   public:
     /** Instantiates a basic cache object. */
     Cache(const CacheParams &p);
+
 
     /**
      * Take an MSHR, turn it into a suitable downstream packet, and

@@ -77,6 +77,8 @@
 #include "sim/sim_exit.hh"
 #include "sim/system.hh"
 
+//#include "prefetch/signature_path_perceptron_filter.hh"
+//
 namespace gem5
 {
 

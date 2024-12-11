@@ -491,6 +491,7 @@ Fetch::lookupAndUpdateNextPC(const DynInstPtr &inst, PCStateBase &next_pc)
     bool predict_taken;
 
     if (!inst->isControl()) {
+
         inst->staticInst->advancePC(next_pc);
         inst->setPredTarg(next_pc);
         inst->setPredTaken(false);
@@ -1094,6 +1095,9 @@ Fetch::fetch(bool &status_change)
 
     // The current PC.
     PCStateBase &this_pc = *pc[tid];
+
+    // Insert current pc into the pc_fifo for spp perceptron filter
+    pc_fifo.push(this_pc.instAddr());
 
     Addr pcOffset = fetchOffset[tid];
     Addr fetchAddr = (this_pc.instAddr() + pcOffset) & decoder[tid]->pcMask();

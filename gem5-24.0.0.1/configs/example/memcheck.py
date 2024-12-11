@@ -43,6 +43,9 @@ import sys
 import m5
 from m5.objects import *
 
+print("hello?")
+print(dir(m5.objects))
+
 parser = argparse.ArgumentParser(
     formatter_class=argparse.ArgumentDefaultsHelpFormatter
 )
@@ -203,7 +206,7 @@ else:
     proto_l1.mshrs = 4
 
 if args.prefetchers:
-    proto_l1.prefetcher = TaggedPrefetcher()
+    proto_l1.prefetcher = SignaturePathPrefetcherPerceptronFilter()
 elif args.stridepref:
     proto_l1.prefetcher = StridePrefetcher()
 
