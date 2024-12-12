@@ -103,9 +103,7 @@ class Base : public ClockedObject
 
   public:
 
-    void handleEvict();
 
-	void handleDemand();
 
     /**
      * Class containing the information needed by the prefetch to train and
@@ -135,10 +133,14 @@ class Base : public ClockedObject
         uint8_t *data;
 
       public:
+
+
+
         /**
          * Obtains the address value of this Prefetcher address.
          * @return the addres value.
          */
+
         Addr getAddr() const
         {
             return address;
@@ -275,6 +277,10 @@ class Base : public ClockedObject
             delete[] data;
         }
     };
+
+    void handleEvict(const Addr addr);
+
+    void handleDemand(const Addr addr);
 
   protected:
 
