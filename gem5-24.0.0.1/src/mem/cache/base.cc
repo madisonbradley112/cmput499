@@ -64,6 +64,8 @@
 #include "params/WriteAllocator.hh"
 #include "sim/cur_tick.hh"
 
+#include "prefetch/signature_path_perceptron_filter.hh"
+
 namespace gem5
 {
 
@@ -1251,25 +1253,18 @@ bool
 BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
                   PacketList &writebacks)
 {
-  std::cout << "IN BASE CACHE ACCESS METHOD" << std::endl;
+
     // sanity check
     assert(pkt->isRequest());
 
     if (pkt->isRead()){
           if (prefetcher){
-      // on eevery L2 cache access, must check the prefetcher tables
-
-
-      prefetcher->handleDemand();
-
-//          if(auto perceptron_prefetcher = dynamic_cast<SignaturePathPerceptronPrefetcher*>(prefetcher)){
-//            return perceptron_prefetcher->handleDemand(pkt, blk);
-//          }
-      }
-
-      }
-
-
+      // on every L2 cache access, must check the prefetcher tables
+      	if (auto perceptron = dynamic_cast<prefetch::SignaturePathPerceptronFilter *>(prefetcher)) {
+                    perceptron->handleDemand(pkt->getAddr());
+      	}
+   	}
+    }
 
     gem5_assert(!(isReadOnly && pkt->isWrite()),
                 "Should never see a write in a read-only cache %s\n",
@@ -1302,8 +1297,14 @@ BaseCache::access(PacketPtr pkt, CacheBlk *&blk, Cycles &lat,
           if (prefetcher){
       // on eevery L2 cache access, must check the prefetcher tables
 
+             //auto pinfo = prefetch::Base::PrefetchInfo(pkt, pkt->getAddr());
+            			if (auto perceptron = dynamic_cast<prefetch::SignaturePathPerceptronFilter *>(prefetcher)) {
+      			    //auto pinfo = prefetch::Base::PrefetchInfo(pkt, pkt->getAddr());
+                                       perceptron->handleEvict(pkt->getAddr());
 
-      prefetcher->handleEvict();
+      			}
+
+
 
 //          if(auto perceptron_prefetcher = dynamic_cast<SignaturePathPerceptronPrefetcher*>(prefetcher)){
 //            return perceptron_prefetcher->handleDemand(pkt, blk);

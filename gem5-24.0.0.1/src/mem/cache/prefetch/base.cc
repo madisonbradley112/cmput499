@@ -85,8 +85,6 @@ Base::PrefetchInfo::PrefetchInfo(PrefetchInfo const &pfi, Addr addr)
 void
 Base::PrefetchListener::notify(const CacheAccessProbeArg &arg)
 {
-
-  std::cout << "IN Base::PrefetchListener::notify()" << std::endl;
     if (isFill) {
         parent.notifyFill(arg);
     } else {
@@ -304,11 +302,11 @@ Base::addMMU(BaseMMU *m)
     mmu = m;
 }
 
-void Base::handleEvict(){
+void Base::handleEvict(const Addr addr){
   std::cout << "handleEvict" << std::endl;
   }
 
-void Base::handleDemand(){
+void Base::handleDemand(const Addr addr){
     std::cout << "handleDemand" << std::endl;
   }
 
