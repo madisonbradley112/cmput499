@@ -1,0 +1,2 @@
+/usr/bin/ar qc libruntime.a CMakeFiles/runtime.dir/stride_machine.c.o
+/usr/bin/ranlib libruntime.a

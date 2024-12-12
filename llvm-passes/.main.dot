@@ -1,0 +1,19 @@
+digraph "CFG for 'main' function" {
+	label="CFG for 'main' function";
+
+	Node0x1f36870 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#cedaeb70",label="{entry:\l  %retval = alloca i32, align 4\l  %argc.addr = alloca i32, align 4\l  %argv.addr = alloca ptr, align 8\l  %arr = alloca [10 x i32], align 16\l  %k = alloca float, align 4\l  %i = alloca i32, align 4\l  store i32 0, ptr %retval, align 4\l  store i32 %argc, ptr %argc.addr, align 4\l  call void @llvm.dbg.declare(metadata ptr %argc.addr, metadata !29, metadata\l... !DIExpression()), !dbg !30\l  store ptr %argv, ptr %argv.addr, align 8\l  call void @llvm.dbg.declare(metadata ptr %argv.addr, metadata !31, metadata\l... !DIExpression()), !dbg !32\l  call void @llvm.dbg.declare(metadata ptr %arr, metadata !33, metadata\l... !DIExpression()), !dbg !37\l  call void @llvm.memcpy.p0.p0.i64(ptr align 16 %arr, ptr align 16\l... @__const.main.arr, i64 40, i1 false), !dbg !37\l  call void @llvm.dbg.declare(metadata ptr %k, metadata !38, metadata\l... !DIExpression()), !dbg !40\l  %call = call i32 @rand() #5, !dbg !41\l  %conv = sitofp i32 %call to float, !dbg !41\l  store float %conv, ptr %k, align 4, !dbg !40\l  %0 = load float, ptr %k, align 4, !dbg !42\l  %conv1 = fpext float %0 to double, !dbg !42\l  %cmp = fcmp ole double %conv1, 5.000000e-01, !dbg !44\l  br i1 %cmp, label %if.then, label %if.end, !dbg !45\l|{<s0>T|<s1>F}}"];
+	Node0x1f36870:s0 -> Node0x1f3f660;
+	Node0x1f36870:s1 -> Node0x1f3f730;
+	Node0x1f3f660 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#abc8fd70",label="{if.then:                                          \l  %call3 = call i32 (ptr, ...) @printf(ptr noundef @.str), !dbg !46\l  br label %if.end, !dbg !48\l}"];
+	Node0x1f3f660 -> Node0x1f3f730;
+	Node0x1f3f730 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#cedaeb70",label="{if.end:                                           \l  call void @llvm.dbg.declare(metadata ptr %i, metadata !49, metadata\l... !DIExpression()), !dbg !51\l  store i32 0, ptr %i, align 4, !dbg !51\l  br label %for.cond, !dbg !52\l}"];
+	Node0x1f3f730 -> Node0x1f40970;
+	Node0x1f40970 [shape=record,color="#b70d28ff", style=filled, fillcolor="#b70d2870",label="{for.cond:                                         \l  %1 = load i32, ptr %i, align 4, !dbg !53\l  %cmp4 = icmp slt i32 %1, 10, !dbg !55\l  br i1 %cmp4, label %for.body, label %for.end, !dbg !56\l|{<s0>T|<s1>F}}"];
+	Node0x1f40970:s0 -> Node0x1f40f20;
+	Node0x1f40970:s1 -> Node0x1f40fa0;
+	Node0x1f40f20 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70",label="{for.body:                                         \l  %2 = load i32, ptr %i, align 4, !dbg !57\l  %idxprom = sext i32 %2 to i64, !dbg !59\l  %arrayidx = getelementptr inbounds [10 x i32], ptr %arr, i64 0, i64\l... %idxprom, !dbg !59\l  %3 = load i32, ptr %arrayidx, align 4, !dbg !59\l  %call6 = call i32 (ptr, ...) @printf(ptr noundef @.str.1, i32 noundef %3),\l... !dbg !60\l  br label %for.inc, !dbg !61\l}"];
+	Node0x1f40f20 -> Node0x1f42020;
+	Node0x1f42020 [shape=record,color="#b70d28ff", style=filled, fillcolor="#bb1b2c70",label="{for.inc:                                          \l  %4 = load i32, ptr %i, align 4, !dbg !62\l  %inc = add nsw i32 %4, 1, !dbg !62\l  store i32 %inc, ptr %i, align 4, !dbg !62\l  br label %for.cond, !dbg !63, !llvm.loop !64\l}"];
+	Node0x1f42020 -> Node0x1f40970;
+	Node0x1f40fa0 [shape=record,color="#3d50c3ff", style=filled, fillcolor="#cedaeb70",label="{for.end:                                          \l  ret i32 0, !dbg !67\l}"];
+}

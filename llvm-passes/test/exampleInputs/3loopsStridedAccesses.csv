@@ -1,0 +1,5 @@
+Strided accesses analysis for ./test/exampleInputs/3loops.c
+Array access instruction, SCEV of array access instruction, Containing loop, Loop trip count, Loop disposition, Array access pattern periodicity, Array access pattern repeated sequence
+"  %arrayidx = getelementptr inbounds [5 x i32], ptr @__const.main.intArray, i64 0, i64 %i.029","{@__const.main.intArray,+,4}<nuw><%for.body>","for.body","5",Loop computable,"1","[ 4; ]"
+"  %arrayidx5 = getelementptr inbounds [5 x float], ptr @__const.main.floatArray, i64 0, i64 %j.030","{@__const.main.floatArray,+,4}<nuw><%while.body>","while.body","5",Loop computable,"1","[ 4; ]"
+"  %arrayidx15 = getelementptr inbounds [5 x ptr], ptr @__const.main.stringArray, i64 0, i64 %k.031","{@__const.main.stringArray,+,8}<nuw><%for.body14>","for.body14","5",Loop computable,"1","[ 8; ]"
