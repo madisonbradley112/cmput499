@@ -54,7 +54,7 @@ from common import (
     ObjectList,
     Options,
 )
-from common.cores.arm import (
+from arm import (
     HPI,
     O3_ARM_v7a,
 )
