@@ -91,16 +91,6 @@ SignaturePathPerceptronFilter::SignaturePathPerceptronFilter(const SignaturePath
         "The lookahead confidence threshold must be less than 1\n");
 
 
-    //gem5::LRURPParams params;
-    //params.name = "LRU_ReplacementPolicy";  // Set the name
-    // (You can set other parameters if needed)
-
-    // Create the LRU replacement policy using the `create()` method
-    //gem5::replacement_policy::LRU* lruPolicy = params.create();
-
-    //AssociativeSet<RejectEntry> rejectTable("replacement table", 1024, 1024, lruPolicy, nullptr);
-
-    // init weights
     for (int i = 0; i < NUM_FEATURES; i++){
       auto vec = std::vector<SatCounter8>();
 
@@ -111,7 +101,6 @@ SignaturePathPerceptronFilter::SignaturePathPerceptronFilter(const SignaturePath
 
 
       }
-
       weightTable.push_back(vec);
 
       }
@@ -144,6 +133,7 @@ SignaturePathPerceptronFilter::PatternEntry::getStrideEntry(stride_t stride)
     }
     return *pstride_entry;
 }
+
 
 void
 SignaturePathPerceptronFilter::addPrefetch(Addr pc, Addr request_addr, uint8_t depth, Addr ppn, stride_t last_block,
@@ -210,7 +200,7 @@ SignaturePathPerceptronFilter::addPrefetch(Addr pc, Addr request_addr, uint8_t d
     features.confidence = (static_cast<uint16_t>(path_confidence) & 0x7F);
 
 
-    std::cout << "Getttting the size o fifo: " << pc_fifo.get_size() << "\n";
+    //std::cout << "Getttting the size o fifo: " << pc_fifo.get_size() << "\n";
     auto num_prev_pcs = pc_fifo.get_size();
 
 
@@ -238,16 +228,15 @@ SignaturePathPerceptronFilter::addPrefetch(Addr pc, Addr request_addr, uint8_t d
     // entry tag is the next 6 bits of the cache block to prefetch
     auto entry_tag = request_addr & 0xFC00;
 
-    std::cout << "Made a prediction... :" << prediction << "\n";
 
+    // The inference is never anything other than 0 so this section is currently never reached
     if (prediction == 1){
-
-      std::cout << " Filter predicts yes\n";
 
       // add address as a prefetch candidate
         addresses.push_back(AddrPriority(new_addr, 0));
 
         // record the data from the prefetch candidate into the prefetch and reject tables
+
         PrefetchEntry *prefetch_entry;
 
         prefetch_entry = prefetchTable.findVictim(entry_index);
@@ -269,7 +258,7 @@ SignaturePathPerceptronFilter::addPrefetch(Addr pc, Addr request_addr, uint8_t d
       }
       else{
 
-        std::cout << "Filter predicts NO\n";
+        //std::cout << "Filter predicts NO\n";
           RejectEntry *reject_entry;
 
           reject_entry = rejectTable.findVictim(entry_index);
@@ -286,135 +275,90 @@ SignaturePathPerceptronFilter::addPrefetch(Addr pc, Addr request_addr, uint8_t d
           reject_entry->confidence = features.confidence;
           reject_entry->depth = depth & 0xF;
 
-          std::cout << "Inserting into reject table\n";
           rejectTable.insertEntry(entry_index, 1, reject_entry);
         }
 }
 
-//void
-//Base::probeNotify(const CacheAccessProbeArg &acc, bool miss)
-//{
+// Handle a demand access to the cache
+void SignaturePathPerceptronFilter::handleDemand(const Addr addr){
+
+ //index both tables
+    auto demand_addr = addr & 0x3FF;
+    auto entry_tag = addr  & 0xFC00;
+
+
+//    for (auto it = prefetchTable.begin(); it != prefetchTable.end(); it++){
 //
-//  std::cout << "in probe notify" << std::endl;
-//    const PacketPtr pkt = acc.pkt;
-//    const CacheAccessor &cache = acc.cache;
-//
-//    // Don't notify prefetcher on SWPrefetch, cache maintenance
-//    // operations or for writes that we are coaslescing.
-//    if (pkt->cmd.isSWPrefetch()) return;
-//    if (pkt->req->isCacheMaintenance()) return;
-//    if (pkt->isCleanEviction()) return;
-//    if (pkt->isWrite() && cache.coalesce()) return;
-//    if (!pkt->req->hasPaddr()) {
-//        panic("Request must have a physical address");
+//      std::string n = typeid(*it).name();
+//      if ((n).length() < 50){
+//        exit(5);
+//      }
 //    }
-//
-//
-//
-//    bool has_been_prefetched =
-//        acc.cache.hasBeenPrefetched(pkt->getAddr(), pkt->isSecure(),
-//                                    requestorId);
-//    if (has_been_prefetched) {
-//        usefulPrefetches += 1;
-//        prefetchStats.pfUseful++;
-//        if (miss)
-//            // This case happens when a demand hits on a prefetched line
-//                // that's not in the requested coherency state.
-//                    prefetchStats.pfUsefulButMiss++;
-//    }
-//
-//    // Verify this access type is observed by prefetcher
-//    if (observeAccess(pkt, miss, has_been_prefetched)) {
-//        if (useVirtualAddresses && pkt->req->hasVaddr()) {
-//            PrefetchInfo pfi(pkt, pkt->req->getVaddr(), miss);
-//            notify(acc, pfi);
-//        } else if (!useVirtualAddresses) {
-//            PrefetchInfo pfi(pkt, pkt->req->getPaddr(), miss);
-//
-//            if (!pkt->isEviction()) {
-//                handleDemand(pfi);
-//            }
-//
-//            notify(acc, pfi);
-//        }
-//    }
-//}
 
-
-//void
-//SignaturePathPerceptronFilter::notify(const CacheAccessProbeArg &arg, const PrefetchInfo &pfi)
-//{
-//
-//    Base::PrefetchListener::notify(arg, pfi);
-//}
-
-
-// check tables and do training on a cache eviction
-
-//void SignaturePathPerceptronFilter::notifyEvict(const EvictionInfo &info){
-//
-//  std::cout << "notify eviction \n";
-//
-//  // index prefetch table only
-//  auto evict_addr = info.addr & 0x3FF;
-//  auto entry_tag = info.addr & 0xFC00;
-//
-//  auto entry = prefetchTable.findEntry(evict_addr, 1);
-//
-//    if(!entry){
-//        return;
-//
-//    }
-//
-//  // entry must be valid and tag must match to train ppf
-//  if(entry->valid && entry_tag == entry->tag){
-//    // must train on misprediction
-//    trainPrefetch(-1, entry);
-//
-//    }
-//
-//    Base::notifyEvict(info);
-//  }
-
-void SignaturePathPerceptronFilter::handleDemand(const Base::PrefetchInfo &info){
-
-    // index both tables
-    auto demand_addr = info.getAddr() & 0x3FF;
-    auto entry_tag = info.getAddr()  & 0xFC00;
-
+    // CURRENTLY SEGFAULTING HERE AT ENTRY 672 USING memcheck.py, thinks it is a VcdTraceValIlEE ob instead of prefetch entry
     auto entry = prefetchTable.findEntry(demand_addr, 1);
 
-    std::cout << "Notify of cache access \n";
-    std::cout << "entry tag: "  << entry_tag << "\n";
-    std::cout << "entry: " << entry << "\n";
+	std::cout << "entry: " << entry << "\n";
 
-    if(!entry){
-      return;
-
-      }
-
-    std::cout << "entry tag?: " << entry->tag << "\n";
+    if(entry){
+      exit(2);
 
     if(entry->valid && entry_tag == entry->tag){
         // if address exists in the prefetch filter on a demand L2 accesss, then the prediction was correct
         trainPrefetch(1, entry);
 
     }
+      }
+
+//     for (auto it = rejectTable.begin(); it != rejectTable.end(); it++){
+//      std::cout << static_cast<int>(it->address) << "reject " << typeid(*it).name() << "\n";
+//    }
 
     auto r_entry = rejectTable.findEntry(demand_addr, 1);
+
+      if(!r_entry){
+      return;
+
+      }
+
+    std::cout << "entry: " << entry << "\n";
+
 
     if(r_entry->valid && entry_tag == r_entry->tag){
         // if address exists in the reject filter on a demand L2 accesss, then the prediction should have been correct
         trainReject(1, r_entry);
-
-    }
+        }
 
   }
 
+
+  // Handle an eviction from the cache
+void SignaturePathPerceptronFilter::handleEvict(const Addr addr){
+
+  // index prefetch table only
+  auto evict_addr = addr & 0x3FF;
+  auto entry_tag = addr & 0xFC00;
+
+  auto entry = prefetchTable.findEntry(evict_addr, 1);
+
+    if(!entry){
+        return;
+
+    }
+
+  // entry must be valid and tag must match to train ppf
+  if(entry->valid && entry_tag == entry->tag){
+    // must train on misprediction
+    trainPrefetch(-1, entry);
+
+    }
+  }
+
+// train reject and train prefetch could probably be combined but this hasn't even been executed yet anyways
  void SignaturePathPerceptronFilter::trainReject(int outcome, RejectEntry * entry){
 
 // reconstruct the index values
-
+    std::cout << "Train reject " << outcome << "\n";
     // page addr is the physical address shifted by the size of a page (each page is 4096 bytes, 2^12 = 4096 so shift by 12)
     auto shift_p = static_cast<uint16_t>(log2(pageBytes));
 
@@ -452,7 +396,7 @@ void SignaturePathPerceptronFilter::handleDemand(const Base::PrefetchInfo &info)
     auto w8 = weightTable[8][f_index0];
 
     auto sum = static_cast<int>(w0) + static_cast<int>(w1) + static_cast<int>(w2) + static_cast<int>(w3) + static_cast<int>(w4) + static_cast<int>(w5) + static_cast<int>(w6) + static_cast<int>(w7) + static_cast<int>(w8);
-
+    std::cout << "SUM in train reject: " << sum << "\n";
     // set the entry's valid bit to 0 after it has been determined to be useful or useless
     entry->valid = 0;
 
@@ -506,7 +450,7 @@ void SignaturePathPerceptronFilter::handleDemand(const Base::PrefetchInfo &info)
 void SignaturePathPerceptronFilter::trainPrefetch(int outcome, PrefetchEntry * entry){
 
      // reconstruct the index values
-
+    std::cout << "Train prefetch: " << outcome << "\n";
     // page addr is the physical address shifted by the size of a page (each page is 4096 bytes, 2^12 = 4096 so shift by 12)
     auto shift_p = static_cast<uint16_t>(log2(pageBytes));
 
@@ -544,7 +488,7 @@ void SignaturePathPerceptronFilter::trainPrefetch(int outcome, PrefetchEntry * e
     auto w8 = weightTable[8][f_index0];
 
     auto sum = static_cast<int>(w0) + static_cast<int>(w1) + static_cast<int>(w2) + static_cast<int>(w3) + static_cast<int>(w4) + static_cast<int>(w5) + static_cast<int>(w6) + static_cast<int>(w7) + static_cast<int>(w8);
-
+    std::cout << "SUM in train prefetch: " << sum << "\n";
     // set the entry's valid bit to 0 after it has been determined to be useful or useless
     entry->valid = 0;
 
@@ -598,7 +542,7 @@ void SignaturePathPerceptronFilter::trainPrefetch(int outcome, PrefetchEntry * e
 
 bool SignaturePathPerceptronFilter::makeInference( Features features){
 
-  std::cout << "Making an inference:\n";
+  //std::cout << "Making an inference:\n";
       auto w0 = static_cast<int>(weightTable[0][features.page_addr_xor_confidence]);
       auto w1 = static_cast<int>(weightTable[1][features.cache_line]);
       auto w2 = static_cast<int>(weightTable[2][features.page_addr]);
@@ -640,7 +584,7 @@ SignaturePathPerceptronFilter::increasePatternEntryCounter(
 void
 SignaturePathPerceptronFilter::updatePatternTable(Addr signature, stride_t stride)
 {
-  std::cout << "Updating patternn table\n";
+  //std::cout << "Updating patternn table\n";
     assert(stride != 0);
     // The pattern table is indexed by signatures
     PatternEntry &p_entry = getPatternEntry(signature);
@@ -653,7 +597,7 @@ SignaturePathPerceptronFilter::getSignatureEntry(Addr ppn, bool is_secure,
         stride_t block, bool &miss, stride_t &stride,
         double &initial_confidence)
 {
-  std::cout << " getting signature entry\n";
+  //std::cout << " getting signature entry\n";
     SignatureEntry* signature_entry = signatureTable.findEntry(ppn, is_secure);
     if (signature_entry != nullptr) {
         signatureTable.accessEntry(signature_entry);
@@ -677,7 +621,7 @@ SignaturePathPerceptronFilter::getSignatureEntry(Addr ppn, bool is_secure,
 SignaturePathPerceptronFilter::PatternEntry &
 SignaturePathPerceptronFilter::getPatternEntry(Addr signature)
 {
-  std::cout << "getting parttern etry\n";
+
     constexpr bool is_secure = false;
     PatternEntry* pattern_entry = patternTable.findEntry(signature, is_secure);
     if (pattern_entry != nullptr) {
@@ -697,7 +641,7 @@ double
 SignaturePathPerceptronFilter::calculatePrefetchConfidence(PatternEntry const &sig,
         PatternStrideEntry const &entry) const
 {
-  std::cout << "cacluate prefetch confidence:\n";
+  //std::cout << "cacluate prefetch confidence:\n";
     return entry.counter.calcSaturation();
 }
 
@@ -706,7 +650,7 @@ SignaturePathPerceptronFilter::calculateLookaheadConfidence(PatternEntry const &
         PatternStrideEntry const &lookahead) const
 {
 
-  std::cout << "calc llookahead confidence\n";
+  //std::cout << "calc llookahead confidence\n";
     double lookahead_confidence = lookahead.counter.calcSaturation();
     if (lookahead_confidence > 0.95) {
         /**
@@ -725,7 +669,7 @@ SignaturePathPerceptronFilter::calculatePrefetch(const PrefetchInfo &pfi,
                                  const CacheAccessor &cache)
 {
 
-  std::cout << "calculating preefetch\n";
+  //std::cout << "calculating preefetch\n";
     Addr request_addr = pfi.getPaddr();
     Addr ppn = request_addr / pageBytes;
     Addr pc = pfi.getPC();
@@ -742,18 +686,15 @@ SignaturePathPerceptronFilter::calculatePrefetch(const PrefetchInfo &pfi,
             current_block, miss, stride, initial_confidence);
 
     if (miss) {
-      std::cout << " MISS ( no signature entry for this page )\n" ;
         // No history for this page, can't continue
         return;
     }
 
     if (stride == 0) {
-        std::cout << " Stride is 0 \n" ;
         // Can't continue with a stride 0
         return;
     }
 
-    std::cout << "Can now update the current signature \n";
 
     // Update the confidence of the current signature
     updatePatternTable(signature_entry.signature, stride);
@@ -769,33 +710,33 @@ SignaturePathPerceptronFilter::calculatePrefetch(const PrefetchInfo &pfi,
 
     // Look for prefetch candidates while the current path confidence is
     // high enough
-    // EDITED THE CURRENT CONFIDENCE THRESHOLD TO JUST BE 0.1 SO SPP CAN BE MORE AGGRESSIVE, NEED TO TUNE TO ALLOW LOOKAHEAD OF 15 MAX
-    while (current_confidence > 0.1) {
-      std::cout << "in current confidence while loop: " << current_confidence << "\n";
+    // EDITED THE CURRENT CONFIDENCE THRESHOLD MANUALLY MAYBE THIS CAUSES PROBLEMS?
+    while (current_confidence > 0.75) {
         // With the updated signature, attempt to generate prefetches
         // - search the PatternTable and select all entries with enough
         //   confidence, these are prefetch candidates
         // - select the entry with the highest counter as the "lookahead"
         PatternEntry *current_pattern_entry =
             patternTable.findEntry(current_signature, is_secure);
+        std::cout <<"current pattern entry: " << current_pattern_entry << std::endl;
         PatternStrideEntry const *lookahead = nullptr;
         if (current_pattern_entry != nullptr) {
             unsigned long max_counter = 0;
             for (auto const &entry : current_pattern_entry->strideEntries) {
                 //select the entry with the maximum counter value as lookahead
+                std::cout <<"stride entry: " << entry.stride << std::endl;
                 if (max_counter < entry.counter) {
                     max_counter = entry.counter;
-                    std::cout << "max_counter: "  << max_counter << "\n";
                     lookahead = &entry;
                 }
                 double prefetch_confidence =
                     calculatePrefetchConfidence(*current_pattern_entry, entry);
 
-                if (prefetch_confidence >= 0.1) {
-                  std::cout << "prefetch confidence\n" << prefetch_confidence << "\n";
+                if (prefetch_confidence >= 0.75) {
                     assert(entry.stride != 0);
                     //prefetch candidate
-                    std::cout << "Adding a prefetch pc: "<< pc << "\n";
+                    std::cout << "Current signature "<< current_signature << "\n";
+                    std::cout << "Current confidence "<< current_confidence << "\n";
                     addPrefetch(pc, request_addr, current_depth, ppn, current_stride, entry.stride,
                                 current_confidence, current_signature,
                                 is_secure, addresses);
@@ -807,14 +748,15 @@ SignaturePathPerceptronFilter::calculatePrefetch(const PrefetchInfo &pfi,
 
           // Increasing the depth counter here
             current_depth += 1;
-            std::cout << "current depthh: "<<  current_depth << "\n";
+            std::cout << "current depthh: "<<  static_cast<int>(current_depth) << "\n";
             current_confidence *= calculateLookaheadConfidence(
                     *current_pattern_entry, *lookahead);
 
-            std::cout << "Neew confidence: " << current_confidence << "\n";
+            
             current_signature =
                 updateSignature(current_signature, lookahead->stride);
             current_stride += lookahead->stride;
+            std::cout << "New current signature: " << current_signature << "\n";
         } else {
             current_confidence = 0.0;
         }

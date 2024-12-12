@@ -283,8 +283,8 @@ class GenericSatCounter
      * @ingroup api_sat_counter
      */
     operator T() const {
-      std::cout << "counter: " ;
-      std::cout << counter << "\n";
+      //std::cout << "counter: " ;
+      //std::cout << counter << "\n";
       return counter; }
 
     /**

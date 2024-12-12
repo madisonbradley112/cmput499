@@ -276,7 +276,7 @@ class SignaturePathPerceptronFilter : public Queued
     //void notify(const CacheAccessProbeArg &acc, const PrefetchInfo &pfi) override;
     //void notifyEvict(const EvictionInfo &info) override;
 
-    void handleDemand(const Base::PrefetchInfo &info);
+
 
     /**
 	* Train the weights for provided prefetch features based on the actual outcome of the usefulness of the weights
@@ -419,6 +419,11 @@ class SignaturePathPerceptronFilter : public Queued
     }
 
   public:
+
+
+    void handleDemand(const Addr addr);
+    void handleEvict(const Addr addr);
+
     SignaturePathPerceptronFilter(const SignaturePathPrefetcherPerceptronFilterParams &p);
     ~SignaturePathPerceptronFilter() = default;
 
