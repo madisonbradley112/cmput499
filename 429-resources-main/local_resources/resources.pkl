@@ -1,0 +1,306 @@
+resources_dir = read("prop:resources_dir")
+
+class Resource {
+      category: String
+      id: String
+      description: String
+      architecture: String
+      size: Int
+      tags: Listing<String>
+      is_zipped: Boolean = false
+      md5sum: String
+      source: String
+      url: String
+      license: String = "https://www.spec.org/cpu2017/Docs/licenses.html"
+      author: Listing<String> = new Listing {
+              "Various"
+      }
+      gem5_versions: Listing<String> = new Listing {"24.0"}
+      source_url: String
+      resource_version: String = "1.0.0"
+      example_usage: String
+}
+
+class Params {
+      arguments: Listing<String>
+}
+
+class ShortResource {
+      id: String
+      resource_version: String
+}
+
+class Workload {
+      category: String = "workload"
+      id: String
+      description: String
+      `function`: String
+      resources: Mapping<String, ShortResource>
+      architecture: String
+      tags: Listing<String>
+      license: String = "https://www.spec.org/cpu2017/Docs/licenses.html"
+      author: Listing<String> = new Listing {
+          "Various"
+      }
+      additional_params: Params
+      source_url: String
+      resource_version: String = "1.0.0"
+      gem5_versions: Listing<String> = new Listing {"24.0"}
+      example_usage: String
+}
+
+class ShortWorkload {
+      id: String
+      resource_version: String
+      input_group: Listing<String>
+}
+
+class Suite {
+      id: String
+      description: String
+      category: String = "suite"
+      resource_version: String = "1.0.0"
+      workloads: Listing<ShortWorkload>
+      gem5_versions: Listing<String> = new Listing {"24.0"}
+      example_usage: String
+      tags: Listing<String>
+      author: Listing<String> = new Listing {
+          "Various"
+      }
+      architecture: String = "ARM"
+      license: String = "https://www.spec.org/cpu2017/Docs/licenses.html"
+      additional_params: Mapping<String, String>?
+      source_url: String = ""
+}
+
+hidden binaries = new Mapping {
+  ["gcc-1"] {
+    name = "gcc-1"
+    binary = "cpugcc_r"
+    md5sum = "fed63ce4b05590390a2aefdf4f1c2008"
+    arguments = new Listing {
+      "$RESOURCES_499/local_resources/inputs/gcc/input/gcc-pp.c"
+      "-O3" 
+      "-finline-limit=0"
+      "-fif-conversion"
+      "-fif-conversion2"
+    }
+  }
+  ["gcc-2"] {
+    name = "gcc-2"
+    binary = "cpugcc_r"
+    md5sum = "fed63ce4b05590390a2aefdf4f1c2008"
+    arguments = new Listing {
+      "$RESOURCES_499/local_resources/inputs/gcc/input/gcc-pp.c"
+      "-O2"
+      "-finline-limit=36000"
+      "-fpic"
+    }
+  }
+  ["gcc-3"] {
+    name = "gcc-3"
+    binary = "cpugcc_r"
+    md5sum = "fed63ce4b05590390a2aefdf4f1c2008"
+    arguments = new Listing {
+      "$RESOURCES_499/local_resources/inputs/gcc/input/gcc-smaller.c"
+      "-O3"
+      "-fipa-pta"
+    }
+  }
+  ["gcc-4"] {
+    name = "gcc-4"
+    binary = "cpugcc_r"
+    md5sum = "fed63ce4b05590390a2aefdf4f1c2008"
+    arguments = new Listing {
+      "$RESOURCES_499/local_resources/inputs/gcc/input/ref32.c"
+      "-O5"
+    }
+  }
+  ["gcc-5"] {
+    name = "gcc-5"
+    binary = "cpugcc_r"
+    md5sum = "fed63ce4b05590390a2aefdf4f1c2008"
+    arguments = new Listing {
+      "$RESOURCES_499/local_resources/inputs/gcc/input/ref32.c"
+      "-O3"
+      "-fselective-scheduling"
+      "-fselective-scheduling2"
+    }
+  }
+  ["mcf"] {
+    name = "mcf"
+    binary = "mcf_r"
+    md5sum = "b5e6134fc8304263bd7d35fecd40dabb"
+    arguments = new Listing {
+      "$RESOURCES_499/local_resources/inputs/mcf/input/inp.in"
+    }
+  }
+  ["omnetpp"] {
+    name = "omnetpp"
+    binary = "omnetpp_r"
+    md5sum = "74c582acd55680baaf4405974cb5086f"
+    arguments = new Listing {
+      "-c General"
+      "-r 0"
+    }
+  }
+  ["xalancbmk"] {
+    name = "xalancbmk"
+    binary = "cpuxalan_r"
+    md5sum = "381c78cb952764ec286e81b221267927"
+    arguments = new Listing {
+      "-v"
+      "$RESOURCES_499/local_resources/inputs/xalancbmk/input/t5.xml"
+      "$RESOURCES_499/local_resources/inputs/xalancbmk/input/xalanc.xml"
+    }
+  }
+  ["x264_1"] {
+    name = "x264_1"
+    binary = "x264_r"
+    md5sum = "999c1974bf7a2a3dadf1d5e30b92ad37"
+    arguments = new Listing {
+      "--pass 1"
+      "--stats x264_stats.log"
+      "--bitrate 1000"
+      "--frames 1000"
+      "-o BuckBunny_New.264"
+      "$RESOURCES_499/local_resources/inputs/x264/input/BuckBunny.264"
+      "1280x720"
+    }
+  }
+  ["x264_2"] {
+    name = "x264_2"
+    binary = "x264_r"
+    md5sum = "999c1974bf7a2a3dadf1d5e30b92ad37"
+    arguments = new Listing {
+      "--pass 2"
+      "--stats x264_stats.log"
+      "--bitrate 1000"
+      "--dumpyuv 200"
+      "--frames 1000"
+      "-o BuckBunny_New.264"
+      "$RESOURCES_499/local_resources/inputs/x264/input/BuckBunny.264"
+      "1280x720"
+    }
+  }
+  ["x264_3"] {
+    name = "x264_3"
+    binary = "x264_r"
+    md5sum = "999c1974bf7a2a3dadf1d5e30b92ad37"
+    arguments = new Listing {
+      "--seek 500"
+      "--dumpyuv 200"
+      "--frames 1250"
+      "-o BuckBunny_New.264"
+      "$RESOURCES_499/local_resources/inputs/x264/input/BuckBunny.264"
+      "1280x720"
+    }
+  }
+  ["deepsjeng"] {
+    name = "deepsjeng"
+    binary = "deepsjeng_r"
+    md5sum = "a740ebca190b63e9ea7f8abc71095803"
+    arguments = new Listing {
+      "$RESOURCES_499/local_resources/inputs/deepsjeng/input/ref.txt"
+    }
+  }
+  ["leela"] {
+    name = "leela"
+    binary = "leela_r"
+    md5sum = "5c60e85d681ac803adea98fcff55a099"
+    arguments = new Listing {
+      "$RESOURCES_499/local_resources/inputs/leela/input/ref.sgf"
+    }
+  }
+  ["exchange2"] {
+    name = "exchange2"
+    binary = "exchange2_r"
+    md5sum = "cf62835dacfe09d8710c73355d97e8ba"
+    arguments = new Listing {
+      "6"
+    }
+  }
+  ["xz_1"] {
+    name = "xz_1"
+    binary = "xz_r"
+    md5sum = "b186c8e700f05e37852c32ce9d60d1fa"
+    arguments = new Listing {
+      "$RESOURCES_499/local_resources/inputs/xz/input/cld.tar.xz"
+      "160"
+      "19cf30ae51eddcbefda78dd06014b4b96281456e078ca7c13e1c0c9e6aaea8dff3efb4ad6b0456697718cede6bd5454852652806a657bb56e07d61128434b474"
+      "59796407"
+      "61004416"
+      "6"
+    }
+  }
+  ["xz_2"] {
+    name = "xz_2"
+    binary = "xz_r"
+    md5sum = "b186c8e700f05e37852c32ce9d60d1fa"
+    arguments = new Listing {
+      "$RESOURCES_499/local_resources/inputs/xz/input/cpu2006docs.tar.xz"
+      "250"
+      "055ce243071129412e9dd0b3b69a21654033a9b723d874b2015c774fac1553d9713be561ca86f74e4f16f22e664fc17a79f30caa5ad2c04fbc447549c2810fae"
+      "23047774"
+      "23513385"
+      "6e"
+    }
+  }
+  ["xz_3"] {
+    name = "xz_3"
+    binary = "xz_r"
+    md5sum = "b186c8e700f05e37852c32ce9d60d1fa"
+    arguments = new Listing {
+      "$RESOURCES_499/local_resources/inputs/xz/input/input.combined.xz"
+      "250"
+      "a841f68f38572a49d86226b7ff5baeb31bd19dc637a922a972b2e6d1257a890f6a544ecab967c313e370478c74f760eb229d4eef8a8d2836d233d3e9dd1430bf"
+      "40401484"
+      "41217675"
+      "7"
+    }
+  }
+}
+
+
+resources = new Listing {
+  for (_binary in binaries) {
+    (Resource) {
+      category = "binary"
+      id = "arm-spec-\(_binary.name)-bin"
+      description = "Benchmark \(_binary.name) compiled for ARM."
+      architecture = "ARM"
+      size = 1
+      tags = new Listing {"spec"}
+      md5sum = "\(_binary.md5sum)"
+      source = "499bin/\(_binary.binary).arm"
+      url = "file://\(resources_dir)/499bin/\(_binary.binary).arm"
+      source_url = ""
+      example_usage = "obtain_resource(\"arm-spec-\(_binary.name)-bin\")"
+    }
+
+    (Workload) {
+      category = "workload"
+      id = "arm-spec-\(_binary.name)-run-se"
+      description = "spec benchmark \(_binary.name) run configuration for ARM SE model."
+      `function` = "set_se_binary_workload"
+      resources {
+        ["binary"] = (ShortResource) {
+          id = "arm-spec-\(_binary.name)-bin"
+          resource_version = "1.0.0"
+        }
+      }
+      additional_params {
+        arguments = _binary.arguments
+      }
+      architecture = "ARM"
+      tags = new Listing {"spec" "se" "arm"}
+      source_url = ""
+      example_usage = "obtain_resource(\"arm-spec-\(_binary.name)-run-se\")"
+    }
+  }
+}
+
+output {
+  renderer = new JsonRenderer{}
+  value = resources
+}
