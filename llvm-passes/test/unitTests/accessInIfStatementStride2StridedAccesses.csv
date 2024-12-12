@@ -1,3 +1,0 @@
-Strided accesses analysis for /home/madison.bradley/llvm-detect-strided-accesses/llvm-passes/test/unitTests/accessInIfStatementStride2.c
-Array access instruction, SCEV of array access instruction, Loop trip count, Array access pattern periodicity, Array access pattern repeated sequence
-"  %arrayidx = getelementptr inbounds i8, ptr @.str, i64 %indvars.iv","{@.str,+,1}<nuw><%for.body>","100","1","[ 1; ]"
