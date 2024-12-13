@@ -420,10 +420,10 @@ class SignaturePathPrefetcherPerceptronFilter(QueuedPrefetcher):
 
 
     prefetch_confidence_threshold = Param.Float(
-        0.5, "Minimum confidence to issue prefetches"
+        0.3, "Minimum confidence to issue prefetches"
     )
     lookahead_confidence_threshold = Param.Float(
-        0.75, "Minimum confidence to continue exploring lookahead entries"
+        0.55, "Minimum confidence to continue exploring lookahead entries"
     )
 
 

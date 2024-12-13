@@ -109,7 +109,7 @@ def create(args):
         tarmac_dest=args.tarmac_dest,
     )
 
-    # Create a cache hierarchy for the cluster. We are assuming that
+# Create a cache hierarchy for the cluster. We are assuming that
     # clusters have core-private L1 caches and an L2 that's shared
     # within the cluster.
     system.addCaches(want_caches, last_cache_level=3)
@@ -121,6 +121,8 @@ def create(args):
 
     # Configure the off-chip memory system.
     MemConfig.config_mem(args, system)
+
+
 
     # Wire up the system's memory system
     system.connect()
@@ -207,6 +209,7 @@ def main():
     )
 
     args = parser.parse_args()
+
 
     # Create a single root node for gem5's object hierarchy. There can
     # only exist one root node in the simulator at any given
