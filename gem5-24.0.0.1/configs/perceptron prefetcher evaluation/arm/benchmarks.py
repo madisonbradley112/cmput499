@@ -68,7 +68,7 @@ x264_3.cmd = [x264_3.executable] + ["--seek 500 --dumpyuv 200 --frames 1250 -o B
 deepsjeng = Process()
 deepsjeng.executable =  binary_dir+'deepsjeng_r'
 data=data_dir+'deepsjeng/input/ref.txt'
-deepsjeng.cmd = [xalancbmk.executable] + [data]
+deepsjeng.cmd = [deepsjeng.executable] + [data]
 
 #541.leela_r
 leela = Process()

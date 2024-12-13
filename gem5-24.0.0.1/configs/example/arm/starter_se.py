@@ -82,6 +82,8 @@ def get_processes(cmd):
     for idx, c in enumerate(cmd):
         argv = shlex.split(c)
 
+        print(argv[0])
+
         process = Process(pid=100 + idx, cwd=cwd, cmd=argv, executable=argv[0])
         process.gid = os.getgid()
 
@@ -115,10 +117,15 @@ def create(args):
         tarmac_dest=args.tarmac_dest,
     )
 
+    print("ARGS NUM CORES:", arg.num_cores)
+    exit
+
     # Create a cache hierarchy for the cluster. We are assuming that
     # clusters have core-private L1 caches and an L2 that's shared
     # within the cluster.
     system.addCaches(want_caches, last_cache_level=2)
+
+
 
     # Tell components about the expected physical memory ranges. This
     # is, for example, used by the MemConfig helper to determine where
@@ -127,6 +134,10 @@ def create(args):
 
     # Configure the off-chip memory system.
     MemConfig.config_mem(args, system)
+
+    system.device_size = '16GB'
+
+
 
     # Wire up the system's memory system
     system.connect()
