@@ -24,14 +24,24 @@ index 76f55666e..985f67968 100644
  #endif
 diff --git a/llvm/lib/Target/AArch64/AArch64AddStaticAnalysisInformation.cpp b/llvm/lib/Target/AArch64/AArch64AddStaticAnalysisInformation.cpp
 new file mode 100644
-index 000000000..642479bbc
+index 000000000..4bede6ad2
 --- /dev/null
 +++ b/llvm/lib/Target/AArch64/AArch64AddStaticAnalysisInformation.cpp
-@@ -0,0 +1,52 @@
+@@ -0,0 +1,257 @@
 +#include "AArch64.h"
 +#include "AArch64InstrInfo.h"
++#include "AArch64Subtarget.h"
++#include "MCTargetDesc/AArch64MCTargetDesc.h"
++#include "llvm/CodeGen/MachineBasicBlock.h"
++#include "llvm/CodeGen/MachineFunction.h"
 +#include "llvm/CodeGen/MachineFunctionPass.h"
++#include "llvm/CodeGen/MachineInstr.h"
 +#include "llvm/CodeGen/MachineInstrBuilder.h"
++#include "llvm/Analysis/AliasAnalysis.h"
++#include "llvm/Analysis/ScalarEvolution.h"
++#include "llvm/Analysis/LoopInfo.h"
++#include <cstdint>
++#include <bitset>
 +
 +using namespace llvm;
 +
@@ -42,9 +52,21 @@ index 000000000..642479bbc
 +class AArch64MachineInstrPrinter : public MachineFunctionPass {
 +public:
 +    static char ID;
++    LoopInfo *LI;
++    ScalarEvolutionAnalysis::Result *SCEV;
++    const AArch64InstrInfo *TII;
++    const TargetRegisterInfo *TRI;
++    
++
 +
 +    AArch64MachineInstrPrinter() : MachineFunctionPass(ID) {
 +        initializeAArch64MachineInstrPrinterPass(*PassRegistry::getPassRegistry());
++    }
++
++    void getAnalysisUsage(AnalysisUsage &AU) const override {
++        AU.addRequired<ScalarEvolutionWrapperPass>();
++        AU.addRequired<LoopInfoWrapperPass>();
++        MachineFunctionPass::getAnalysisUsage(AU);
 +    }
 +
 +    bool runOnMachineFunction(MachineFunction &MF) override;
@@ -52,16 +74,199 @@ index 000000000..642479bbc
 +    StringRef getPassName() const override { return AARCH64_MACHINEINSTR_PRINTER_PASS_NAME; }
 +};
 +
++struct FeatureInformation {
++    // loop-specific information
++    bool inLoop: 1;
++    bool inLoopHeader: 1;
++    bool loopHasNoAbnormalExits: 1;
++    bool loopIsFiniteByAssumption: 1;
++    unsigned loopDepth: 12;
++    unsigned maxTripCount: 12;
++    unsigned functionInstructions: 16; 
++    unsigned blockSize: 16;
++};
++
 +char AArch64MachineInstrPrinter::ID = 0;
 +
++static bool isMemoryInstruction(unsigned opcode) {
++  switch (opcode) {
++    default: 
++      return false;
++    // load instructions
++    case AArch64::LDRBBroW:
++    case AArch64::LDRBBroX:
++    case AArch64::LDRBroW:
++    case AArch64::LDRBroX:
++    case AArch64::LDRDroW:
++    case AArch64::LDRDroX:
++    case AArch64::LDRHHroW:
++    case AArch64::LDRHHroX:
++    case AArch64::LDRHroW:
++    case AArch64::LDRHroX:
++    case AArch64::LDRQroW:
++    case AArch64::LDRQroX:
++    case AArch64::LDRSBWroW:
++    case AArch64::LDRSBWroX:
++    case AArch64::LDRSBXroW:
++    case AArch64::LDRSBXroX:
++    case AArch64::LDRSHWroW:
++    case AArch64::LDRSHWroX:
++    case AArch64::LDRSHXroW:
++    case AArch64::LDRSHXroX:
++    case AArch64::LDRSWroW:
++    case AArch64::LDRSWroX:
++    case AArch64::LDRSroW:
++    case AArch64::LDRSroX:
++    case AArch64::LDRWroW:
++    case AArch64::LDRWroX:
++    case AArch64::LDRXroW:
++    case AArch64::LDRXroX:
++    case AArch64::LDRDui:
++
++    // prefetch instructions
++    case AArch64::PRFMroW:
++    case AArch64::PRFMroX:
++    // store instructions
++    case AArch64::STRBBroW:
++    case AArch64::STRBBroX:
++    case AArch64::STRBroW:
++    case AArch64::STRBroX:
++    case AArch64::STRDroW:
++    case AArch64::STRDroX:
++    case AArch64::STRHHroW:
++    case AArch64::STRHHroX:
++    case AArch64::STRHroW:
++    case AArch64::STRHroX:
++    case AArch64::STRQroW:
++    case AArch64::STRQroX:
++    case AArch64::STRSroW:
++    case AArch64::STRSroX:
++    case AArch64::STRWroW:
++    case AArch64::STRWroX:
++    case AArch64::STRXroW:
++    case AArch64::STRXroX:
++      return true;
++  }
++}
++
++uint64_t setField(uint64_t value, uint64_t fieldValue, int pos, int width) {
++    uint64_t mask = ((1ULL << width) - 1) << pos; 
++    value &= ~mask;                              
++    value |= (fieldValue << pos) & mask;         
++    return value;
++}
++
 +bool AArch64MachineInstrPrinter::runOnMachineFunction(MachineFunction &MF) {
++    const AArch64Subtarget &Subtarget = MF.getSubtarget<AArch64Subtarget>();
++    TII = static_cast<const AArch64InstrInfo *>(Subtarget.getInstrInfo());
++     TRI = Subtarget.getRegisterInfo();
++    LI = &getAnalysis<LoopInfoWrapperPass>().getLoopInfo();
++    SCEV = &getAnalysis<ScalarEvolutionWrapperPass>().getSE();
 +
 +    for (auto &MBB : MF) {
-+        outs() << "Contents of MachineBasicBlock:\n";
-+        outs() << MBB << "\n";
++        
++        bool isChanged = false;
++        // this is the LLVM IR basic block that corresponds with the machine basic block
 +        const BasicBlock *BB = MBB.getBasicBlock();
-+        outs() << "Contents of BasicBlock corresponding to MachineBasicBlock:\n";
-+        outs() << BB << "\n";
++        Loop *L = LI->getLoopFor(BB); 
++        uint64_t previousRegisterValue = 0;
++        for (auto &MI : MBB) {
++            FeatureInformation instrInfo;
++
++            // we only consider load/store instructions here
++            if (!MI.mayLoad() && !MI.mayStore()) {
++                continue;
++            }
++            
++            
++            if (L) {
++                instrInfo.inLoop = true;
++            } else {
++                instrInfo.inLoop = false;
++            }
++            
++            if (L) {
++              if (!L->isInvalid()) {
++                instrInfo.loopDepth = static_cast<unsigned short>(L->getLoopDepth());
++              }
++
++                            
++              if (SCEV->loopHasNoAbnormalExits(L)) {
++                  instrInfo.loopHasNoAbnormalExits = true;
++              } else {
++                  instrInfo.loopHasNoAbnormalExits = false;
++              }
++
++              if (SCEV->loopIsFiniteByAssumption(L)) {
++                  instrInfo.loopIsFiniteByAssumption = true;
++              } else {
++                  instrInfo.loopIsFiniteByAssumption = false;
++              }
++               
++              instrInfo.maxTripCount = static_cast<unsigned short>(SCEV->getSmallConstantMaxTripCount(L));
++            } else {
++              instrInfo.loopDepth = 0;
++              instrInfo.loopHasNoAbnormalExits = false;
++              instrInfo.loopIsFiniteByAssumption = false;
++              instrInfo.maxTripCount = 0;
++            }
++
++            if (LI->isLoopHeader(BB)) {
++                instrInfo.inLoopHeader = true;
++            } else {
++                instrInfo.inLoopHeader = false;
++            }
++
++            instrInfo.blockSize = static_cast<unsigned short>(MBB.size());
++
++            instrInfo.functionInstructions = static_cast<unsigned short>(MF.getInstructionCount()); 
++
++                    
++            // now, we set up the value for the machine instruction to
++            // write to the register
++            uint64_t registerValue = 0;
++            registerValue = setField(registerValue, instrInfo.inLoop, 0, 1);
++            registerValue = setField(registerValue, instrInfo.inLoopHeader, 1, 1);
++            registerValue = setField(registerValue, instrInfo.loopHasNoAbnormalExits, 2, 1);
++            registerValue = setField(registerValue, instrInfo.inLoop, 3, 1);
++            registerValue = setField(registerValue, instrInfo.loopIsFiniteByAssumption, 4, 1);
++            registerValue = setField(registerValue, instrInfo.inLoop, 5, 1);
++            registerValue = setField(registerValue, instrInfo.loopDepth, 6, 12);
++            registerValue = setField(registerValue, instrInfo.inLoop, 18, 1);
++            registerValue = setField(registerValue, instrInfo.maxTripCount, 19, 12);
++            registerValue = setField(registerValue, instrInfo.inLoop, 31, 1);
++            registerValue = setField(registerValue, instrInfo.functionInstructions, 32, 16);
++            registerValue = setField(registerValue, instrInfo.blockSize, 48, 16);
++           
++            // only change the register value if it changes
++            // this is because a lot of register values remain the same
++            if (registerValue << 32 != previousRegisterValue << 32) {
++  
++              // Now get the iterator pointing to the given instruction in the basic block
++              MachineBasicBlock::iterator MBBI = MBB.instr_begin();
++              for (; MBBI != MBB.instr_end(); MBBI++) {
++                if (&*MBBI == &MI) {
++                  break; // MBBI now points to the instruction MI
++                }
++              }
++
++              Register tempReg = MF.getRegInfo().createVirtualRegister(&AArch64::GPR64RegClass);
++      
++              DebugLoc DL;
++              // Use a MOV instruction to load the immediate into TempReg
++              BuildMI(MBB, MBBI, DL, TII->get(AArch64::MOVi64imm), tempReg)
++                  .addImm(registerValue); // The immediate to load
++              
++              DebugLoc DL2;
++              // Now use MSR to move the value from TempReg to TPIDR2_EL0
++              BuildMI(MBB, MBBI, DL2, TII->get(AArch64::MSR))
++                  .addReg(tempReg)         // Register holding the value
++                  .addImm(0xde85); // Write to TPIDR2_EL0
++              isChanged = true; 
++              previousRegisterValue = registerValue;
++            }
++        }
++        
 +    }
 +
 +    return false;
@@ -72,7 +277,7 @@ index 000000000..642479bbc
 +INITIALIZE_PASS(AArch64MachineInstrPrinter, "AArch64-machineinstr-printer",
 +    AARCH64_MACHINEINSTR_PRINTER_PASS_NAME,
 +    true, // is CFG only?
-+    true  // is analysis?
++    false  // is analysis?
 +)
 +
 +namespace llvm {
@@ -80,7 +285,6 @@ index 000000000..642479bbc
 +FunctionPass *createAArch64MachineInstrPrinterPass() { return new AArch64MachineInstrPrinter(); }
 +
 +}
-\ No newline at end of file
 diff --git a/llvm/lib/Target/AArch64/AArch64TargetMachine.cpp b/llvm/lib/Target/AArch64/AArch64TargetMachine.cpp
 index 559879139..5c7de1277 100644
 --- a/llvm/lib/Target/AArch64/AArch64TargetMachine.cpp
