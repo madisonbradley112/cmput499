@@ -103,6 +103,9 @@ SignaturePath::addPrefetch(Addr ppn, stride_t last_block,
     bool is_secure, std::vector<AddrPriority> &addresses)
 {
     stride_t block = last_block + delta;
+ std::cout << "Issued PREFS: " << prefetchStats.pfIssued.value() << std::endl;
+    std::cout << "ACCURACY: " << (prefetchStats.pfUseful.value()/prefetchStats.pfIssued.value()) << std::endl;
+	std::cout << "COVERAGE: " << (prefetchStats.pfUseful.value() / (prefetchStats.pfUseful.value() + prefetchStats.demandMshrMisses.value())) << std::endl;
 
     Addr pf_ppn;
     stride_t pf_block;

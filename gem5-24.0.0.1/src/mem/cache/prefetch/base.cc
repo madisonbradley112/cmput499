@@ -231,6 +231,7 @@ Base::pageIthBlockAddress(Addr page, uint32_t blockIndex) const
 void
 Base::probeNotify(const CacheAccessProbeArg &acc, bool miss)
 {
+
     const PacketPtr pkt = acc.pkt;
     const CacheAccessor &cache = acc.cache;
 

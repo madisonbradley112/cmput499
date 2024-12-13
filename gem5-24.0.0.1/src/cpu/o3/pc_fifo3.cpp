@@ -14,7 +14,7 @@ std::mutex pcFifo::pc_fifo_m;
 
 void pcFifo::push(Addr pc) {
     std::lock_guard<std::mutex> lock(pc_fifo_m);
-      std::cout << "pcFIFO push\n";
+      //std::cout << "pcFIFO push\n";
     if (pc_fifo.size() >= max_size) {
        pc_fifo.pop_front();
     }
@@ -24,7 +24,7 @@ void pcFifo::push(Addr pc) {
 
 Addr pcFifo::get(size_t index){
     std::lock_guard<std::mutex> lock(pc_fifo_m);
-      std::cout << "pcFIFO get \n";
+      //std::cout << "pcFIFO get \n";
 
     if (index >= pc_fifo.size()){
           return -1;
@@ -34,7 +34,7 @@ Addr pcFifo::get(size_t index){
 }
 
 size_t pcFifo::get_size(){
-  std::cout << "pcFIFO get size\n";
+  //std::cout << "pcFIFO get size\n";
   return pc_fifo.size();
 
 }

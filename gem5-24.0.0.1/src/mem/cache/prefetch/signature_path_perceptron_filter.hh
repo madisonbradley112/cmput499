@@ -41,11 +41,11 @@
 #define __MEM_CACHE_PREFETCH_SIGNATURE_PATH_PERCEPTRON_FILTER_HH__
 
 #include "base/sat_counter.hh"
+#include "base/neg_sat_counter.hh"
 #include "mem/cache/prefetch/associative_set.hh"
 #include "mem/cache/prefetch/queued.hh"
 #include "mem/packet.hh"
 #include "cpu/o3/pc_fifo3.hh"
-
 
 namespace gem5
 {
@@ -64,6 +64,9 @@ class SignaturePathPerceptronFilter : public Queued
     typedef int16_t stride_t;
     /** Metadata type */
     typedef uint8_t tag_t;
+
+    int correct_predictions; // address was prefetched correctly
+    int incorrect_predictions; // address was prefetched when it was not needed or adddress was needed and not prefetched
 
     /** Number of strides stored in each pattern entry */
     const unsigned stridesPerPatternEntry;
@@ -177,7 +180,7 @@ class SignaturePathPerceptronFilter : public Queued
     {
         /** prefetch info */
         bool valid : 1;
-        uint8_t tag : 6;
+        uint8_t tag : 7;
         bool useful : 1;
         bool prefetch_decision: 1;
 
@@ -203,7 +206,7 @@ class SignaturePathPerceptronFilter : public Queued
     {
         /** prefetch info */
         bool valid : 1;
-        uint8_t tag : 6;
+        uint8_t tag : 7;
         bool prefetch_decision: 1;
 
         /** metadata */
@@ -254,12 +257,13 @@ class SignaturePathPerceptronFilter : public Queued
     // adjusted negatively. 
 
     // We use the info in the tables to re-index the weights involved in the prefetch 
-    // filter decision. 
-    std::vector<std::vector<SatCounter8>> weightTable;
+    // filter decision.
+    //typedef NegativeSatCounter<int8_t> NegSatCounter8;
+    std::vector<std::vector<NSatCounter8>> weightTable;
 
     // weight thresholds, t_low is the threshold for prefetching into LLC, t_high is the threshold for prefetching into the L2 cache
-    int t_low = 25;
-    int t_high = 90;
+    //int t_low = 25;
+    int t= 70;
 
     /**
      * Uses the features of a prefetch candidate to filter whether or not this candidate should be prefetched

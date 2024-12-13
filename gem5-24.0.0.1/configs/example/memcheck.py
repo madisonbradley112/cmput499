@@ -206,7 +206,7 @@ else:
     proto_l1.mshrs = 4
 
 if args.prefetchers:
-    proto_l1.prefetcher = SignaturePathPrefetcherPerceptronFilter()
+    proto_l1.prefetcher = SignaturePathPrefetcher()
 elif args.stridepref:
     proto_l1.prefetcher = StridePrefetcher()
 
