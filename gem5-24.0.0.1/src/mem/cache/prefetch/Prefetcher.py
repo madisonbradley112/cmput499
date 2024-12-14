@@ -426,6 +426,100 @@ class SignaturePathPrefetcherPerceptronFilter(QueuedPrefetcher):
         0.55, "Minimum confidence to continue exploring lookahead entries"
     )
 
+class SignaturePathPrefetcherPerceptronFilterStaticFeatures(QueuedPrefetcher):
+    type = "SignaturePathPrefetcherPerceptronFilterStaticFeatures"
+    cxx_class = "gem5::prefetch::SignaturePathPerceptronFilterStaticFeatures"
+    cxx_header = "mem/cache/prefetch/signature_path_perceptron_filter_static_features.hh"
+
+    signature_shift = Param.UInt8(
+        3, "Number of bits to shift when calculating a new signature"
+    )
+    signature_bits = Param.UInt16(12, "Size of the signature, in bits")
+    signature_table_entries = Param.MemorySize(
+        "1024", "Number of entries of the signature table"
+    )
+    signature_table_assoc = Param.Unsigned(
+        2, "Associativity of the signature table"
+    )
+    signature_table_indexing_policy = Param.BaseIndexingPolicy(
+        SetAssociative(
+            entry_size=1,
+            assoc=Parent.signature_table_assoc,
+            size=Parent.signature_table_entries,
+        ),
+        "Indexing policy of the signature table",
+    )
+    signature_table_replacement_policy = Param.BaseReplacementPolicy(
+        LRURP(), "Replacement policy of the signature table"
+    )
+
+    num_counter_bits = Param.UInt8(
+        3, "Number of bits of the saturating counters"
+    )
+    pattern_table_entries = Param.MemorySize(
+        "4096", "Number of entries of the pattern table"
+    )
+    pattern_table_assoc = Param.Unsigned(
+        1, "Associativity of the pattern table"
+    )
+    strides_per_pattern_entry = Param.Unsigned(
+        4, "Number of strides stored in each pattern entry"
+    )
+    pattern_table_indexing_policy = Param.BaseIndexingPolicy(
+        SetAssociative(
+            entry_size=1,
+            assoc=Parent.pattern_table_assoc,
+            size=Parent.pattern_table_entries,
+        ),
+        "Indexing policy of the pattern table",
+    )
+    pattern_table_replacement_policy = Param.BaseReplacementPolicy(
+        LRURP(), "Replacement policy of the pattern table"
+    )
+
+    prefetch_table_entries = Param.MemorySize(
+        "1024", "Number of entries of the prefetch table"
+    )
+    prefetch_table_assoc = Param.Unsigned(
+        1, "Associativity of the prefetch table"
+    )
+    prefetch_table_indexing_policy = Param.BaseIndexingPolicy(
+        SetAssociative(
+            entry_size=1,
+            assoc=Parent.prefetch_table_assoc,
+            size=Parent.prefetch_table_entries,
+        ),
+        "Indexing policy of the prefetch table",
+    )
+    prefetch_table_replacement_policy = Param.BaseReplacementPolicy(
+        LRURP(), "Replacement policy of the prefetch table"
+    )
+
+    reject_table_entries = Param.MemorySize(
+        "1024", "Number of entries of the reject table"
+    )
+    reject_table_assoc = Param.Unsigned(
+        1, "Associativity of the reject table"
+    )
+    reject_table_indexing_policy = Param.BaseIndexingPolicy(
+        SetAssociative(
+            entry_size=1,
+            assoc=Parent.reject_table_assoc,
+            size=Parent.reject_table_entries,
+        ),
+        "Indexing policy of the reject table",
+    )
+    reject_table_replacement_policy = Param.BaseReplacementPolicy(
+        LRURP(), "Replacement policy of the reject table"
+    )
+
+
+    prefetch_confidence_threshold = Param.Float(
+        0.3, "Minimum confidence to issue prefetches"
+    )
+    lookahead_confidence_threshold = Param.Float(
+        0.55, "Minimum confidence to continue exploring lookahead entries"
+    )
 
 class SignaturePathPrefetcherV2(SignaturePathPrefetcher):
     type = "SignaturePathPrefetcherV2"

@@ -57,6 +57,7 @@
 #include "debug/IEW.hh"
 #include "debug/O3PipeView.hh"
 #include "params/BaseO3CPU.hh"
+#include "arch/arm/regs/misc.hh"
 
 namespace gem5
 {
@@ -1044,6 +1045,8 @@ IEW::dispatchInsts(ThreadID tid)
             instQueue.insert(inst);
         }
 
+
+
         insts_to_dispatch.pop();
 
         toRename->iewInfo[tid].dispatched++;
@@ -1220,6 +1223,13 @@ IEW::executeInsts()
                 panic("Unexpected memory type!\n");
             }
 
+            // If an instruction is a memref, we want to associate it's addr with
+            // the static analysis information
+            // so, we put the values in the table
+            Addr instr_pc = inst->pcState().instAddr();
+            ThreadContext* ctx = cpu->tcBase(inst->threadNumber);
+            uint64_t tpidr2_el0 = ctx->readMiscReg(MISCREG_TPIDR2_EL0);
+            featureCommunicationTable.add(instr_pc, tpidr2_el0);
         } else {
             // If the instruction has already faulted, then skip executing it.
             // Such case can happen when it faulted during ITLB translation.

@@ -54,6 +54,7 @@
 #include "cpu/timebuf.hh"
 #include "debug/IEW.hh"
 #include "sim/probe/probe.hh"
+#include "cpu/o3/feature_communication_table.hh"
 
 namespace gem5
 {
@@ -126,6 +127,7 @@ class IEW
     ProbePointArg<DynInstPtr> *ppToCommit;
 
   public:
+    FeatureCommunicationTable featureCommunicationTable;
     /** Constructs a IEW with the given parameters. */
     IEW(CPU *_cpu, const BaseO3CPUParams &params);
 
