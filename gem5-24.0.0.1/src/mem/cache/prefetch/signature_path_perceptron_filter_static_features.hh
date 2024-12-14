@@ -276,13 +276,6 @@ class SignaturePathPerceptronFilterStaticFeatures : public Queued
     bool makeInference( Features features);
     using EvictionInfo = CacheDataUpdateProbeArg;
 
-    //void
-	//probeNotify(const CacheAccessProbeArg &acc, bool miss);
-
-    //void notify(const CacheAccessProbeArg &acc, const PrefetchInfo &pfi) override;
-    //void notifyEvict(const EvictionInfo &info) override;
-
-
 
     /**
 	* Train the weights for provided prefetch features based on the actual outcome of the usefulness of the weights

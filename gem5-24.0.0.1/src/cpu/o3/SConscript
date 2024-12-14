@@ -57,6 +57,7 @@ if env['CONF']['BUILD_ISA']:
     Source('thread_context.cc')
     Source('thread_state.cc')
     Source('pc_fifo3.cpp')
+    Source('feature_communication_table.cpp')
 
     DebugFlag('CommitRate')
     DebugFlag('IEW')
