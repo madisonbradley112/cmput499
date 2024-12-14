@@ -66,7 +66,8 @@ namespace o3
 {
 
 IEW::IEW(CPU *_cpu, const BaseO3CPUParams &params)
-    : issueToExecQueue(params.backComSize, params.forwardComSize),
+    : featureCommunicationTable(),
+      issueToExecQueue(params.backComSize, params.forwardComSize),
       cpu(_cpu),
       instQueue(_cpu, this, params),
       ldstQueue(_cpu, this, params),
@@ -1227,9 +1228,9 @@ IEW::executeInsts()
             // the static analysis information
             // so, we put the values in the table
             Addr instr_pc = inst->pcState().instAddr();
-            ThreadContext* ctx = cpu->tcBase(inst->threadNumber);
-            uint64_t tpidr2_el0 = ctx->readMiscReg(MISCREG_TPIDR2_EL0);
-            featureCommunicationTable.add(instr_pc, tpidr2_el0);
+            gem5::ThreadContext* ctx = cpu->tcBase(inst->threadNumber);
+            uint64_t tpidr2_el0 = ctx->readMiscReg(gem5::ArmISA::MISCREG_TPIDR2_EL0);
+            featureCommunicationTable.add(static_cast<uint64_t>(instr_pc), static_cast<uint64_t>(tpidr2_el0));
         } else {
             // If the instruction has already faulted, then skip executing it.
             // Such case can happen when it faulted during ITLB translation.
